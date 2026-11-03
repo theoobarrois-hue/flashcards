@@ -1,5 +1,5 @@
 /* Flashcards — service worker : tout est gardé sur l'appareil, l'appli marche hors ligne */
-const CACHE = 'flashcards-36c6d27733';
+const CACHE = 'flashcards-88fb54c259';
 const ASSETS = [
   "./",
   "LISEZMOI.txt",
@@ -46,7 +46,8 @@ const ASSETS = [
   "vendor/katex/fonts/KaTeX_Size4-Regular.woff2",
   "vendor/katex/fonts/KaTeX_Typewriter-Regular.woff2",
   "vendor/katex/katex.min.css",
-  "vendor/katex/katex.min.js"
+  "vendor/katex/katex.min.js",
+  "vendor/katex/mhchem.min.js"
 ];
 
 self.addEventListener('install', (e) => {
