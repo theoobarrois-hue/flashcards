@@ -1,0 +1,21 @@
+FLASHCARDS — appli installable (Mac + iPhone), hors ligne, synchronisée.
+
+A) SYNCHRO (une seule fois, ~5 min) — Supabase, gratuit
+ 1. supabase.com › New project (note le mot de passe de la base, tu n'en auras pas besoin ensuite).
+ 2. SQL Editor › New query › colle tout supabase.sql › Run.
+ 3. Authentication › Providers › Email : désactive « Confirm email » › Save.
+ 4. Project Settings › API : copie « Project URL » et la clé « anon public ».
+ 5. (Déjà fait : config.js contient ton URL et ta clé.)
+
+B) HÉBERGER (une seule fois, https obligatoire pour installer)
+ - app.netlify.com/drop : glisse CE DOSSIER (dézippé). Tu obtiens une adresse https.
+
+C) INSTALLER
+ - iPhone : Safari > Partager > « Sur l'écran d'accueil ».
+ - Mac : Safari > Fichier > Ajouter au Dock (ou Chrome : « Installer »).
+
+D) SE CONNECTER (sur chaque appareil)
+ - Données et sauvegarde › Synchronisation › créer le compte (1er appareil), se connecter (les autres).
+ - Tout se synchronise tout seul : dossiers, jeux, cartes, erreurs, suppressions. Hors ligne ça marche, ça rattrape au retour du réseau.
+
+Import : « Importer un HTML ». Export : menu ⋯ d'un jeu > Exporter en HTML. Sauvegarde complète : « Données et sauvegarde ».

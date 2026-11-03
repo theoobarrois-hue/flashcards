@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Flashcards</title>
+<meta name="description" content="Tes flashcards, rangées dans des dossiers, hors ligne.">
+<meta name="theme-color" content="#f6f1e7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Flashcards">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-view="lib">
+<div id="shell">
+  <aside id="side" aria-label="Dossiers"></aside>
+  <main id="main" tabindex="-1"></main>
+  <nav id="tabbar" aria-label="Navigation principale"></nav>
+</div>
+<div id="modal-root"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="file" accept=".html,.htm,text/html" multiple hidden>
+<noscript><p style="padding:24px;font-family:sans-serif">Cette application a besoin de JavaScript.</p></noscript>
+<script src="vendor/katex/katex.min.js"></script>
+<script src="vendor/katex/auto-render.min.js"></script>
+<script src="seed.js"></script>
+<script src="seed-extra.js"></script>
+<script src="config.js"></script>
+<script src="js/store.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/transfer.js"></script>
+<script src="js/ui-core.js"></script>
+<script src="js/ui-sync.js"></script>
+<script src="js/ui-app.js"></script>
+<script>FC.boot();</script>
+</body>
+</html>
