@@ -490,6 +490,17 @@
     window.addEventListener('load', function () { render(); });
   }
 
+  function staticList(p) {
+    var h = '<main style="max-width:760px;margin:24px auto;padding:0 16px;font-family:Georgia,serif;color:#231f1b"><h1>' + esc(p.title) + '</h1><p style="color:#7c7c7c">Aperçu sans JavaScript : ouvre ce fichier dans Safari ou Chrome pour réviser, ou importe-le dans l’appli.</p>';
+    p.chapters.forEach(function (c, ci) {
+      h += '<h2 style="margin-top:28px">' + esc(c.title) + '</h2>';
+      p.cards.forEach(function (c2, i) {
+        if ((c2.ch || 0) !== ci) return;
+        h += '<div style="border:1px solid #dcd6ca;border-radius:10px;padding:12px 14px;margin:10px 0;background:#fff"><div><b>Q.</b> ' + c2.f + '</div><div style="margin-top:8px"><b>R.</b> ' + c2.b + '</div></div>';
+      });
+    });
+    return h + '</main>';
+  }
   FC.buildSetHTML = function (set) {
     var p = FC.toPortable(set);
     var title = esc(p.title), sub = esc(p.sub || 'Flashcards');
@@ -507,8 +518,10 @@
       '<style>',
       CSS,
       '</style>',
+      '<noscript><style>.wrap{display:none}</style></noscript>',
       '</head>',
       '<body>',
+      '<noscript>' + staticList(p) + '</noscript>',
       '<div class="wrap">',
       '  <header><h1>' + title + '<small>' + sub + '</small></h1></header>',
       '  <nav id="tabs" role="tablist" aria-label="Sets de flashcards"></nav>',
