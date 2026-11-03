@@ -7,7 +7,7 @@
   var route = { v: 'lib' };
   var Q = '';
   var R = null;
-  var pickDefaultFolder = null;
+  var pickDefaultFolder = null, pickTargetSet = null;
   var deferredInstall = null;
 
   /* ---------- Routage ---------- */
@@ -517,6 +517,7 @@
     if (!s) return;
     UI.menu(s.title, [
       { id: 'rename', label: 'Renommer', icon: 'edit' },
+      { id: 'addin', label: 'Importer des cartes dans ce jeu', icon: 'upload' },
       { id: 'chapters', label: 'Gérer les chapitres', icon: 'book' },
       { id: 'move', label: 'Déplacer', icon: 'move' },
       { id: 'export', label: 'Exporter en HTML', icon: 'download' },
@@ -525,6 +526,7 @@
     ]).then(function (a) {
       if (!a) return;
       if (a === 'rename') UI.askName('Renommer le jeu', 'Nom', s.title).then(function (n) { if (n) FC.renameSet(id, n); });
+      else if (a === 'addin') { pickFiles(s.folder); pickTargetSet = id; }
       else if (a === 'chapters') chaptersDialog(id);
       else if (a === 'move') UI.chooseFolder('Déplacer « ' + s.title + ' »', s.folder, null).then(function (r) { if (r) FC.moveSet(id, UI.resolvePick(r.pick)); });
       else if (a === 'export') exportSet(id);
@@ -570,11 +572,13 @@
   /* ---------- Import ---------- */
   function pickFiles(folder) {
     pickDefaultFolder = folder || null;
+    pickTargetSet = null;
     var inp = $('#file');
     inp.value = '';
     inp.click();
   }
   function doImport(files, defFolder) {
+    var target = pickTargetSet; pickTargetSet = null;
     files = Array.prototype.slice.call(files).filter(function (f) { return /\.html?$/i.test(f.name) || /html/.test(f.type); });
     if (!files.length) { UI.toast('Choisis un fichier .html.'); return; }
     var parsed = [], errs = [];
@@ -587,6 +591,14 @@
         return UI.modal({ title: 'Import impossible', body: '<p class="msg">' + errs.map(esc).join('<br>') + '</p>', buttons: [{ id: 'ok', label: 'OK', kind: 'primary' }] });
       }
       if (errs.length) UI.toast(errs.length + ' fichier(s) ignoré(s).');
+      var tset = target && FC.set(target);
+      if (tset && parsed.every(function (p) { return p.kind === 'set'; })) {
+        var add = 0, skip = 0;
+        parsed.forEach(function (p) { var u = FC.updateSetFromPortable(tset, p.data, 'merge'); add += u.added; skip += u.skipped; });
+        UI.toast(FC.plural(add, 'carte ajoutée', 'cartes ajoutées') + (skip ? ' · ' + skip + ' déjà présente(s)' : '') + ' dans « ' + tset.title + ' ».');
+        go('#/s/' + target);
+        return;
+      }
       return UI.importDialog(parsed, defFolder).then(function (r) {
         if (!r) return;
         var hasSet = parsed.some(function (p) { return p.kind === 'set'; });
@@ -681,7 +693,7 @@
     }
   }
 
-  FC.VERSION = 'v12';
+  FC.VERSION = 'v13';
   function refreshApp() {
     var done = function () { location.reload(); };
     var p = Promise.resolve();
