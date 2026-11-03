@@ -120,7 +120,7 @@
       (deferredInstall ? '<button type="button" class="btn block primary" data-act="install">Installer l’application</button>' : '') +
       '<button type="button" class="dashed" data-act="import" data-folder="">' + ic('download', 16) + 'Importer un HTML</button>' +
       '<button type="button" class="ghostrow" data-act="data">' + ic('gear', 16) + 'Données et sauvegarde</button>' +
-      '<button type="button" class="syncrow" data-act="sync"><i class="sd ' + FC.sync.status.state + '"></i>' + UI.syncLabel() + '</button><div style="font-size:10px;opacity:.45;text-align:center;padding:6px 0 0">v10</div></div></div>';
+      '<button type="button" class="syncrow" data-act="sync"><i class="sd ' + FC.sync.status.state + '"></i>' + UI.syncLabel() + '</button><div style="font-size:10px;opacity:.45;text-align:center;padding:6px 0 0">v11</div></div></div>';
     $('#side').innerHTML = h;
   }
 

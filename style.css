@@ -374,3 +374,7 @@ code{background:#f1e9d7;padding:1px 5px;border-radius:5px;font-size:.92em}
 .shufbtn.on{background:#231f1b;color:#fffdf8;border-color:#231f1b}
 .rv-title h1{min-width:0}
 @media (max-width:520px){.shufbtn span{display:none}.shufbtn{width:34px;padding:0;justify-content:center}.rv-r{gap:8px;flex:none}}
+.page.rv{min-width:0;width:100%;box-sizing:border-box}
+.segwrap{min-width:0;width:100%}
+.segs{min-width:0}
+.rv-body{min-width:0}
