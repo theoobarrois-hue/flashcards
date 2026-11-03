@@ -13,6 +13,7 @@
   /* ---------- Icônes ---------- */
   var P = {
     plus: '<path d="M12 5v14M5 12h14"/>',
+    shuffle: '<path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/>',
     chevR: '<path d="M9 5l7 7-7 7"/>',
     chevL: '<path d="M15 5l-7 7 7 7"/>',
     chevD: '<path d="M5 9l7 7 7-7"/>',

@@ -23,8 +23,14 @@
     if (location.hash === hash || (hash === '#/' && !location.hash)) onRoute();
     else location.hash = hash;
   }
+  var SHUF = { on: false, rank: {} };
+  function order(list) {
+    if (!SHUF.on) return list;
+    list.forEach(function (e) { if (SHUF.rank[e.cardId] === undefined) SHUF.rank[e.cardId] = Math.random(); });
+    return list.slice().sort(function (a, b) { return SHUF.rank[a.cardId] - SHUF.rank[b.cardId]; });
+  }
   function entries(set, tab) {
-    return FC.cardsOf(set, tab).map(function (c) { return { setId: set.id, cardId: c.id }; });
+    return order(FC.cardsOf(set, tab).map(function (c) { return { setId: set.id, cardId: c.id }; }));
   }
   function defaultTab(s) {
     var tabs = FC.tabsOf(s), valid = {};
@@ -35,11 +41,11 @@
   }
   function buildSession() {
     if (route.v === 'errors') {
-      R = { kind: 'errors', tab: 'errors', list: FC.allErrors(), idx: 0, flipped: false, sig: '' };
+      R = { kind: 'errors', tab: 'errors', list: order(FC.allErrors()), idx: 0, flipped: false, sig: '' };
     } else {
       var s = FC.set(route.id), tab = defaultTab(s);
       var list = entries(s, tab);
-      R = { kind: 'set', setId: s.id, tab: tab, list: list, idx: Math.min(Math.max(s.pos[tab] || 0, 0), Math.max(0, list.length - 1)), flipped: false, sig: '' };
+      R = { kind: 'set', setId: s.id, tab: tab, list: list, idx: SHUF.on ? 0 : Math.min(Math.max(s.pos[tab] || 0, 0), Math.max(0, list.length - 1)), flipped: false, sig: '' };
     }
   }
   function onRoute() {
@@ -114,7 +120,7 @@
       (deferredInstall ? '<button type="button" class="btn block primary" data-act="install">Installer l’application</button>' : '') +
       '<button type="button" class="dashed" data-act="import" data-folder="">' + ic('download', 16) + 'Importer un HTML</button>' +
       '<button type="button" class="ghostrow" data-act="data">' + ic('gear', 16) + 'Données et sauvegarde</button>' +
-      '<button type="button" class="syncrow" data-act="sync"><i class="sd ' + FC.sync.status.state + '"></i>' + UI.syncLabel() + '</button><div style="font-size:10px;opacity:.45;text-align:center;padding:6px 0 0">v8</div></div></div>';
+      '<button type="button" class="syncrow" data-act="sync"><i class="sd ' + FC.sync.status.state + '"></i>' + UI.syncLabel() + '</button><div style="font-size:10px;opacity:.45;text-align:center;padding:6px 0 0">v9</div></div></div>';
     $('#side').innerHTML = h;
   }
 
@@ -260,7 +266,7 @@
       '<div class="rv-actions"><button type="button" class="btn sm" data-act="edit" aria-label="Modifier la carte">' + ic('edit', 15, 2) + '<span class="lbl">Modifier la carte</span></button>' +
       (set ? '<button type="button" class="btn sm" data-act="addCard" aria-label="Ajouter une carte">' + ic('plus', 14, 2.6) + '<span>Carte</span></button><button type="button" class="iconbtn" data-act="setMenu" data-id="' + set.id + '" aria-label="Actions du jeu">' + ic('more', 20) + '</button>' : '') + '</div></div>' +
       (set ? '<div class="segwrap"><div class="segs" id="rvTabs" role="tablist">' + tabsHTML(set) + '</div></div>' : '') +
-      '<div class="rv-body"><div class="rv-title"><h1 id="rvTitle">' + esc(title) + '</h1><span id="counter" aria-live="polite"></span></div>' +
+      '<div class="rv-body"><div class="rv-title"><h1 id="rvTitle">' + esc(title) + '</h1><span class="rv-r"><button type="button" class="shufbtn' + (SHUF.on ? ' on' : '') + '" data-act="shuffle" id="shufBtn" aria-pressed="' + SHUF.on + '">' + ic('shuffle', 15, 2.2) + '<span>Mélanger</span></button><span id="counter" aria-live="polite"></span></span></div>' +
       '<div id="cardHost"></div>' +
       '<div class="controls"><button type="button" class="cbtn" data-act="prev" id="btnPrev">' + ic('chevL', 18, 2.4) + '<span>Précédente</span></button>' +
       '<button type="button" class="cbtn" data-act="err" id="errBtn">' + ic('flag', 18) + '<span id="errLbl">Marquer comme erreur</span></button>' +
@@ -359,13 +365,28 @@
       var tt = $('#rvTitle');
       if (tt) tt.textContent = s.title;
     } else {
-      R.list = FC.allErrors();
+      R.list = order(FC.allErrors());
     }
     var i = -1;
     R.list.forEach(function (e, k) { if (e.cardId === curId) i = k; });
     if (i < 0) R.flipped = false;
     R.idx = i >= 0 ? i : Math.min(R.idx, Math.max(0, R.list.length - 1));
     paintCard();
+  }
+
+  function toggleShuffle() {
+    if (!R) return;
+    SHUF.on = !SHUF.on;
+    SHUF.rank = {};
+    var curId = R.list[R.idx] && R.list[R.idx].cardId;
+    if (R.kind === 'set') R.list = entries(FC.set(R.setId), R.tab); else R.list = order(FC.allErrors());
+    var i = -1;
+    R.list.forEach(function (e, k) { if (e.cardId === curId) i = k; });
+    if (SHUF.on) { R.idx = 0; R.flipped = false; } else { R.idx = i >= 0 ? i : 0; }
+    var b = $('#shufBtn');
+    if (b) { b.classList.toggle('on', SHUF.on); b.setAttribute('aria-pressed', SHUF.on ? 'true' : 'false'); }
+    paintCard();
+    if (UI.toast) UI.toast(SHUF.on ? 'Cartes mélangées' : 'Ordre d’origine');
   }
 
   function nav(d) {
@@ -617,6 +638,7 @@
       case 'import': pickFiles(t.dataset.folder !== undefined ? (t.dataset.folder || null) : (route.v === 'folder' ? route.id : null)); break;
       case 'folderMenu': folderMenu(id); break;
       case 'setMenu': setMenu(id); break;
+      case 'shuffle': toggleShuffle(); break;
       case 'prev': nav(-1); break;
       case 'next': nav(1); break;
       case 'flip': flip(); break;

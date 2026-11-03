@@ -368,3 +368,9 @@ code{background:#f1e9d7;padding:1px 5px;border-radius:5px;font-size:.92em}
 .linkbtn{background:none;border:0;color:var(--muted);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer;padding:8px 0}
 .msg.warn{color:var(--err)}
 .mrow em{display:block;font-style:normal;color:var(--muted);font-size:12px;margin-top:2px}
+
+.rv-r{display:flex;align-items:center;gap:12px}
+.shufbtn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:15px;border:1px solid var(--line);background:var(--surface);font-size:13px;font-weight:500;color:var(--ink,#231f1b)}
+.shufbtn.on{background:#231f1b;color:#fffdf8;border-color:#231f1b}
+.rv-title h1{min-width:0}
+@media (max-width:520px){.shufbtn span{display:none}.shufbtn{width:34px;padding:0;justify-content:center}.rv-r{gap:8px;flex:none}}
