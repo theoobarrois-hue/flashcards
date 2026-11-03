@@ -327,6 +327,7 @@
       '<button type="button" class="mrow" data-m="sync">' + UI.ic('cloud', 18) + '<span>Synchronisation entre appareils<em>' + UI.syncLabel() + '</em></span></button>' +
       '<button type="button" class="mrow" data-m="backup">' + UI.ic('download', 18) + '<span>Sauvegarde complète (un seul fichier HTML)<em>Dernière : ' + last + '</em></span></button>' +
       '<button type="button" class="mrow" data-m="import">' + UI.ic('upload', 18) + '<span>Importer un fichier HTML<em>Jeu de cartes ou sauvegarde</em></span></button>' +
+      '<button type="button" class="mrow" data-m="update">' + UI.ic('flip', 18) + '<span>Mettre à jour l\'appli<em>Version ' + (FC.VERSION || '') + ' · recharge la dernière version</em></span></button>' +
       '</div>';
     return UI.modal({ title: 'Données', body: body });
   };

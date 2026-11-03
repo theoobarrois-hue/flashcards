@@ -120,7 +120,7 @@
       (deferredInstall ? '<button type="button" class="btn block primary" data-act="install">Installer l’application</button>' : '') +
       '<button type="button" class="dashed" data-act="import" data-folder="">' + ic('download', 16) + 'Importer un HTML</button>' +
       '<button type="button" class="ghostrow" data-act="data">' + ic('gear', 16) + 'Données et sauvegarde</button>' +
-      '<button type="button" class="syncrow" data-act="sync"><i class="sd ' + FC.sync.status.state + '"></i>' + UI.syncLabel() + '</button><div style="font-size:10px;opacity:.45;text-align:center;padding:6px 0 0">v11</div></div></div>';
+      '<button type="button" class="syncrow" data-act="sync"><i class="sd ' + FC.sync.status.state + '"></i>' + UI.syncLabel() + '</button><div style="font-size:10px;opacity:.45;text-align:center;padding:6px 0 0">' + FC.VERSION + '</div></div></div>';
     $('#side').innerHTML = h;
   }
 
@@ -671,6 +671,7 @@
             if (a === 'backup') backup();
             else if (a === 'import') pickFiles(route.v === 'folder' ? route.id : null);
             else if (a === 'sync') UI.syncDialog();
+            else if (a === 'update') refreshApp();
           });
         });
         break;
@@ -678,6 +679,14 @@
         if (deferredInstall) { deferredInstall.prompt(); deferredInstall = null; renderSide(); }
         break;
     }
+  }
+
+  FC.VERSION = 'v12';
+  function refreshApp() {
+    var done = function () { location.reload(); };
+    var p = Promise.resolve();
+    if ('serviceWorker' in navigator) p = navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); });
+    p.then(function () { return window.caches ? caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }) : null; }).then(done, done);
   }
 
   function onChange() {
@@ -753,7 +762,9 @@
       bind();
       onRoute();
       if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
-        navigator.serviceWorker.register('sw.js').catch(function () { /* hors ligne non disponible */ });
+        var had = !!navigator.serviceWorker.controller, reloaded = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function () { if (had && !reloaded) { reloaded = true; location.reload(); } });
+        navigator.serviceWorker.register('sw.js').then(function (r) { try { r.update(); } catch (e) {} }).catch(function () { /* hors ligne non disponible */ });
       }
       document.documentElement.classList.add('ready');
     });
