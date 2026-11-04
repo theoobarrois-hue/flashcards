@@ -224,9 +224,12 @@
   UI.cardEditor = function (set, card, defaults) {
     var isNew = !card;
     var d = card || defaults || {};
-    var chOpts = set.chapters.map(function (c) {
-      return '<option value="' + c.id + '"' + (c.id === (d.ch || set.chapters[0] && set.chapters[0].id) ? ' selected' : '') + '>' + esc(c.title) + '</option>';
-    }).join('') + '<option value="__new">+ Nouveau chapitre…</option>';
+    var rc = set.chapters.filter(FC.isRecapCh)[0];
+    var real = set.chapters.filter(function (c) { return !FC.isRecapCh(c); });
+    var cur = d.ch === '__recap' || (rc && d.ch === rc.id) ? '__recap' : (d.ch || real[0] && real[0].id);
+    var chOpts = real.map(function (c) {
+      return '<option value="' + c.id + '"' + (c.id === cur ? ' selected' : '') + '>' + esc(c.title) + '</option>';
+    }).join('') + '<option value="__recap"' + (cur === '__recap' ? ' selected' : '') + '>Récap seulement (hors chapitres)</option><option value="__new">+ Nouveau chapitre…</option>';
     var body = '<div class="ed">' +
       '<label class="field"><span>Recto (question)</span><textarea id="edF" rows="3" placeholder="DL en $0$ de $\\cos x$ à l\'ordre $n$ ?"></textarea></label>' +
       '<label class="field"><span>Verso (réponse)</span><textarea id="edB" rows="4" placeholder="$$\\cos x \\underset{x\\to0}{=} \\sum_{k=0}^{n}\\frac{(-1)^k x^{2k}}{(2k)!}+o(x^{2n})$$"></textarea></label>' +

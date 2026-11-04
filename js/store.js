@@ -254,6 +254,15 @@
     state.sets.forEach(function (s) { r.cards += s.cards.length; r.errors += s.errors.length; });
     return r;
   };
+  FC.RECAP_CH = '\u00a7R\u00e9cap';
+  FC.isRecapCh = function (c) { return !!c && c.title === FC.RECAP_CH; };
+  FC.recapChapter = function (setId) {
+    var s = FC.set(setId), ex = null;
+    if (!s) return null;
+    s.chapters.forEach(function (c) { if (FC.isRecapCh(c)) ex = c; });
+    if (!ex) { ex = { id: FC.uid(), title: FC.RECAP_CH, o: FC.ord() }; s.chapters.push(ex); touch(); }
+    return ex;
+  };
   FC.cardsOf = function (set, tab) {
     if (tab === 'recap') return set.cards.filter(function (c) { return c.star; });
     if (tab === 'errors') return set.cards.filter(function (c) { return set.errors.indexOf(c.id) >= 0; });
@@ -261,7 +270,7 @@
   };
   FC.tabsOf = function (set) {
     var tabs = [{ key: 'recap', title: 'Récap Ultra-Important', short: 'Récap' }];
-    set.chapters.forEach(function (c) { tabs.push({ key: c.id, title: c.title, short: c.title }); });
+    set.chapters.forEach(function (c) { if (!FC.isRecapCh(c)) tabs.push({ key: c.id, title: c.title, short: c.title }); });
     tabs.push({ key: 'errors', title: 'Mes erreurs', short: 'Erreurs' });
     tabs.forEach(function (t) { t.n = FC.cardsOf(set, t.key).length; });
     return tabs;

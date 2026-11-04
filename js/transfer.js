@@ -289,11 +289,13 @@
       });
     });
     if (recap) {
+      var rci = -1;
       recap.cards.forEach(function (c) {
         var k = c.f + '\u0000' + c.b;
         if (used[k]) return;
+        if (rci < 0) { p.chapters.push({ title: FC.RECAP_CH }); rci = p.chapters.length - 1; }
         var sn = splitNote(c.b);
-        p.cards.push({ ch: 0, f: c.f, b: sn.b, n: sn.n, star: true });
+        p.cards.push({ ch: rci, f: c.f, b: sn.b, n: sn.n, star: true });
       });
     }
     return p;
@@ -385,6 +387,7 @@
     var recap = cards.filter(function (c) { return c.star; });
     if (recap.length) data.push({ key: 'recap', title: 'Récap Ultra-Important', cards: recap });
     J.chapters.forEach(function (ch, i) {
+      if (ch.title === '\u00a7R\u00e9cap') return;
       data.push({ key: 'ch' + i, title: ch.title, cards: cards.filter(function (c) { return c.ch === i; }) });
     });
     var ERR_KEY = 'errors', ERR_TITLE = '★ Mes erreurs';
@@ -517,7 +520,7 @@
   function staticList(p) {
     var h = '<main style="max-width:760px;margin:24px auto;padding:0 16px;font-family:Georgia,serif;color:#231f1b"><h1>' + esc(p.title) + '</h1><p style="color:#7c7c7c">Aperçu sans JavaScript : ouvre ce fichier dans Safari ou Chrome pour réviser, ou importe-le dans l’appli.</p>';
     p.chapters.forEach(function (c, ci) {
-      h += '<h2 style="margin-top:28px">' + esc(c.title) + '</h2>';
+      h += '<h2 style="margin-top:28px">' + esc(c.title === FC.RECAP_CH ? 'Récap' : c.title) + '</h2>';
       p.cards.forEach(function (c2, i) {
         if ((c2.ch || 0) !== ci) return;
         h += '<div style="border:1px solid #dcd6ca;border-radius:10px;padding:12px 14px;margin:10px 0;background:#fff"><div><b>Q.</b> ' + c2.f + '</div><div style="margin-top:8px"><b>R.</b> ' + c2.b + '</div></div>';

@@ -487,7 +487,7 @@
   function chaptersDialog(setId) {
     var s = FC.set(setId);
     if (!s) return;
-    var body = '<div class="menu">' + s.chapters.map(function (c) {
+    var body = '<div class="menu">' + s.chapters.filter(function (c) { return !FC.isRecapCh(c); }).map(function (c) {
       var n = s.cards.filter(function (x) { return x.ch === c.id; }).length;
       return '<div class="chrow"><span>' + esc(c.title) + '<em>' + FC.plural(n, 'carte') + '</em></span><button type="button" class="iconbtn" data-m="ren:' + c.id + '" aria-label="Renommer ' + esc(c.title) + '">' + ic('edit', 18) + '</button><button type="button" class="iconbtn" data-m="del:' + c.id + '" aria-label="Supprimer ' + esc(c.title) + '">' + ic('trash', 18) + '</button></div>';
     }).join('') + '<button type="button" class="mrow" data-m="add">' + ic('plus', 18) + '<span>Ajouter un chapitre</span></button></div>';
@@ -553,12 +553,14 @@
       }
       var ch = r.ch;
       if (r.ch === '__new') ch = FC.addChapter(setId, r.newCh).id;
-      var data = { f: r.f, b: r.b, n: r.n, star: r.star, ch: ch };
+      var star = r.star;
+      if (r.ch === '__recap') { ch = FC.recapChapter(setId).id; star = true; }
+      var data = { f: r.f, b: r.b, n: r.n, star: star, ch: ch };
       if (card) { FC.updateCard(setId, card.id, data); UI.toast('Carte modifiée.'); }
       else {
         var nc = FC.addCard(setId, data);
         UI.toast('Carte ajoutée.');
-        if (r.act === 'saveadd') { editCard(setId, null, { ch: ch, star: r.star }); return; }
+        if (r.act === 'saveadd') { editCard(setId, null, { ch: ch, star: star }); return; }
         if (R && R.kind === 'set' && R.setId === setId) {
           // se placer sur la carte créée si elle est dans l'onglet courant
           var i = -1;
@@ -659,7 +661,7 @@
       case 'addCard':
         if (R && R.kind === 'set') {
           var defCh = FC.set(R.setId).chapters.some(function (c) { return c.id === R.tab; }) ? R.tab : null;
-          editCard(R.setId, null, { ch: defCh, star: R.tab === 'recap' });
+          editCard(R.setId, null, { ch: R.tab === 'recap' ? '__recap' : defCh, star: R.tab === 'recap' });
         }
         break;
       case 'resume':
@@ -693,7 +695,7 @@
     }
   }
 
-  FC.VERSION = 'v16';
+  FC.VERSION = 'v17';
   function refreshApp() {
     var done = function () { location.reload(); };
     var p = Promise.resolve();
