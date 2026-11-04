@@ -38,7 +38,7 @@
     if (/at least \d+ char/i.test(m) || /weak/i.test(m)) return 'Mot de passe trop court (6 caractères minimum).';
     if (/valid email|invalid.*email/i.test(m)) return 'Adresse email invalide.';
     if (/rate limit|too many/i.test(m)) return 'Trop d’essais : attends une minute.';
-    if (/capprepa_chapters|schema cache|does not exist/i.test(m)) return 'La table n’existe pas encore : colle supabase-cap-prepa.sql dans Supabase (SQL Editor).';
+    if (/capprepa_chapters|schema cache|does not exist/i.test(m)) return 'Table manquante : termine la configuration ci-dessous (une seule fois).';
     return m || ('Erreur ' + status);
   }
   function http(method, url, headers, body) {
@@ -89,7 +89,7 @@
 
   /* ---------- méta locale : { uid, cursor, init, last, m: { id: {ts,h,d,dirty} } } ---------- */
   function meta() { var m = lsGet(META_KEY); if (!m || typeof m !== 'object' || !m.m) m = { uid: '', cursor: 0, init: 0, last: 0, m: {} }; return m; }
-  function pack(c) { return { name: c.name, subject: c.subject, total: c.total, q: c.questions.map(function (s) { return CODE[s] || 't'; }).join('') }; }
+  function pack(c) { var has = c.info && Object.keys(c.info).length; return { name: c.name, subject: c.subject, total: c.total, q: c.questions.map(function (s) { return CODE[s] || 't'; }).join(''), t: Number.isInteger(c.touched) ? c.touched : undefined, i: has ? c.info : undefined }; }
   function afterLogin() {
     var u = S.user(), m = meta();
     if (u && m.uid !== u.id) m = { uid: u.id, cursor: 0, init: 0, last: 0, m: {} };
@@ -111,7 +111,7 @@
     if (d.subject === 'Français' && d.total % 4) return null;
     var qs = d.q.split('').map(function (ch) { return DECODE[ch]; });
     if (qs.indexOf(undefined) >= 0) return null;
-    return { id: id, name: d.name, subject: d.subject, total: d.total, questions: qs };
+    var out = { id: id, name: d.name, subject: d.subject, total: d.total, questions: qs, info: CP.cleanInfo(d.i, d.total) }; if (Number.isInteger(d.t)) out.touched = d.t; return out;
   }
   function applyRemote(m, rows) {
     var changed = false;

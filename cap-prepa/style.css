@@ -112,3 +112,53 @@ button.stat:focus-visible{outline-offset:-3px}
 .backup-actions button:disabled{opacity:.6;cursor:default}
 @media(max-width:760px){.sync-chip{font-size:10px;padding:6px 4px}.save-controls{gap:4px}.save-state{display:none}}
 @media(prefers-reduced-motion:reduce){.sync-dot,.sync-chip::before{animation:none!important}}
+
+/* ===== Révision du jour, notes, chapitres négligés ===== */
+.home-due{display:block;background:none;color:#8a5a2c;font-size:12px;padding:6px 0 0;text-align:left;font-weight:600}
+.home-due:hover{text-decoration:underline}
+#dueNav b{background:#e8ece6;border-radius:10px;padding:2px 7px;min-width:22px}
+#dueNav.active b{background:#ffffff30}
+.due-panel{display:flex;flex-direction:column;gap:16px;margin-bottom:10px}
+.due-group{background:#fff;border:1px solid var(--border);border-radius:8px;padding:16px 18px}
+.due-group>header{display:flex;align-items:center;gap:10px;margin-bottom:6px;height:auto;border:0;font-size:inherit;color:inherit;justify-content:flex-start}
+.due-group h3{font-size:14px;margin:0}
+.due-group header .muted{margin-left:auto}
+.due-row{padding:13px 0;border-top:1px solid var(--border)}
+.due-row:first-of-type{border-top:0}
+.due-main{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px}
+.tag{font-size:10px;padding:3px 7px;border-radius:3px;font-weight:600}
+.tag.redo-tag{background:#f6e6dc;color:var(--bad)}
+.tag.confirm{background:#e2eee5;color:var(--good)}
+.late{font-size:11px;color:var(--bad)}
+.reason{font-size:10px;padding:2px 7px;border-radius:10px;background:#eef0ec;color:#4b574e;margin-left:4px}
+.due-note{margin:6px 0 0;font-size:12px;color:var(--muted);line-height:1.5}
+.due-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
+.due-actions button{padding:9px 14px;border-radius:6px;font-size:12px;font-weight:600;min-height:38px}
+.due-actions .ok{background:var(--good);color:#fff}
+.due-actions .ko{background:var(--bad);color:#fff}
+.due-actions .ghost{background:#fff;border:1px solid var(--border);color:#4b574e;font-weight:500}
+.err-list{margin-top:26px;border-top:1px solid var(--border);padding-top:18px}
+.err-list h3{font-size:13px;margin:0 0 6px}
+.err-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid #eef0ec;font-size:12px}
+.err-row:first-of-type{border-top:0}
+.err-row p{margin:4px 0 0;color:var(--muted);line-height:1.5}
+.q.has-note::after{content:"";position:absolute;top:4px;right:4px;width:5px;height:5px;border-radius:50%;background:#e8c46a}
+.last-seen{margin-top:9px;font-size:10px;color:var(--muted)}
+.last-seen.is-stale{color:var(--bad);font-weight:600}
+.stale-notice{display:flex;align-items:center;gap:14px;padding:12px 16px;margin:0 0 18px;border:1px solid #e3cfa4;border-radius:6px;background:#fbf3dd;color:#6a4d12;font-size:12px;line-height:1.5}
+.stale-notice>span{flex:1}
+.stale-notice button{background:none;color:#6a4d12;text-decoration:underline;font-size:12px;white-space:nowrap}
+.causes{background:#fff;border:1px solid var(--border);border-radius:8px;padding:11px 16px;margin:0 0 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.causes h3{font-size:12px;margin:0}
+.cause-list{display:flex;flex-wrap:wrap;gap:8px}
+.cause{position:relative;display:inline-flex;gap:6px;align-items:center;padding:7px 11px 9px;border-radius:5px;background:#f3f5f1;font-size:12px;overflow:hidden}
+.cause i{position:absolute;left:0;bottom:0;height:3px;background:var(--bad)}
+textarea{border:1px solid #cdd5cd;border-radius:5px;padding:10px 11px;font:inherit;resize:vertical;min-height:70px}
+.quick #reason{flex:0 0 auto;width:auto}
+.quick #qnote{flex-basis:100%}
+.sql-help{margin:14px 0 4px;padding:14px 16px;border:1px solid #e3cfa4;border-radius:8px;background:#fbf3dd}
+.sql-help h4{margin:0 0 6px;font-size:13px;color:#6a4d12}
+.sql-help ol{padding-left:20px;margin:10px 0 0}
+.sql-help li{margin-bottom:10px;font-size:12px;line-height:1.6}
+.sql-help a{color:var(--green);font-weight:600}
+@media(max-width:760px){aside #dueNav{display:none}.due-group{padding:14px}.due-actions button{flex:1 1 40%}.stale-notice{flex-wrap:wrap}}
