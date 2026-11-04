@@ -179,6 +179,15 @@ h1{margin:0;font:600 46px/1.05 var(--serif);letter-spacing:-.02em}
 .stack.s2{left:44px;right:44px;top:16px;bottom:0;background:#e8dfcb}
 .stack.s1{left:22px;right:22px;top:8px;bottom:8px;background:#f1e9d7;border:1px solid rgba(35,31,27,.08)}
 .card{position:absolute;left:0;right:0;top:0;bottom:18px;perspective:1600px;cursor:pointer;outline:none}
+.card{touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;will-change:transform;transition:transform .32s cubic-bezier(.2,.9,.25,1),opacity .27s ease-out}
+.card.dragging{transition:none;cursor:grabbing}
+.card.leaving{transition:transform .27s cubic-bezier(.5,0,.9,.4),opacity .27s ease-in;pointer-events:none}
+.card.enter{animation:cardIn .38s cubic-bezier(.2,.85,.25,1) both}
+@keyframes cardIn{from{opacity:0;transform:scale(.9) translateY(18px)}to{opacity:1;transform:none}}
+.tint{position:absolute;inset:0;border-radius:26px;pointer-events:none;z-index:2;background:transparent}
+.swipe-hint{position:absolute;top:24px;z-index:4;opacity:0;pointer-events:none;padding:6px 14px;border:3px solid;border-radius:12px;font:800 15px var(--sans);letter-spacing:.09em;text-transform:uppercase;background:rgba(255,253,248,.9)}
+.swipe-hint.ok{left:20px;color:#2f7d4f;transform:rotate(-9deg)}
+.swipe-hint.no{right:20px;color:#c4553f;transform:rotate(9deg)}
 .card:focus-visible .face{outline:2px solid var(--accent);outline-offset:3px}
 .inner{position:relative;width:100%;height:100%;transition:transform .55s cubic-bezier(.4,.2,.2,1);transform-style:preserve-3d}
 .card.flipped .inner{transform:rotateY(180deg)}
@@ -205,6 +214,11 @@ h1{margin:0;font:600 46px/1.05 var(--serif);letter-spacing:-.02em}
 .cbtn.on{border-color:var(--err);color:#8f2f1e;background:#fdeeea}
 .cbtn.on .ic{fill:currentColor}
 .cbtn:disabled{opacity:.4;cursor:default}
+.cbtn.ok{color:#256a42;border-color:#9cc7ae;background:#eef7f1}
+.cbtn.no{color:#a83e29;border-color:#e2b3a8;background:#fdf1ee}
+.cbtn.ok:not(:disabled):active{background:#dcefe3}.cbtn.no:not(:disabled):active{background:#f9ddd6}
+.swhelp{text-align:center;font-size:12px;color:var(--muted);margin:14px 0 0}
+.empty-card.done b.okn{color:#2f7d4f}.empty-card.done b.non{color:#c4553f}
 kbd{font:500 12px var(--sans);padding:2px 8px;border-radius:6px;background:rgba(255,253,248,.16)}
 #segInfo{margin-top:22px;padding:0 4px}
 .segsvg{display:block}
@@ -339,8 +353,12 @@ code{background:#f1e9d7;padding:1px 5px;border-radius:5px;font-size:.92em}
   .note{width:auto;font-size:15px}
   .tag{left:22px}
   .controls{margin-top:8px;padding-bottom:6px}
-  .cbtn[data-act=prev],.cbtn[data-act=next]{width:58px;height:58px;padding:0;border-radius:29px}
-  .cbtn[data-act=prev] span,.cbtn[data-act=next] span{display:none}
+  .controls{gap:8px}
+  .cbtn[data-act=prev]{width:50px;height:58px;padding:0;border-radius:29px}
+  .cbtn[data-act=prev] span{display:none}
+  .cbtn.ok,.cbtn.no{height:58px;width:58px;padding:0;border-radius:29px}
+  .cbtn.ok span,.cbtn.no span{display:none}
+  .swhelp{display:none}
   .cbtn.dark{flex:1;height:58px;font-size:17px;border-radius:29px}
   .cbtn.dark kbd,.cbtn.dark .ic{display:none}
   #errBtn{display:none}
@@ -355,7 +373,7 @@ code{background:#f1e9d7;padding:1px 5px;border-radius:5px;font-size:.92em}
   .field input,.field textarea,.field select{font-size:16px}
   .field textarea{font-size:15px}
 }
-@media (prefers-reduced-motion:reduce){.inner,.ftile-btn,.modal,.modal-back{transition:none;animation:none}}
+@media (prefers-reduced-motion:reduce){.card,.card.enter,.inner,.ftile-btn,.modal,.modal-back{transition:none;animation:none}}
 @media print{#side,#tabbar{display:none}}
 
 /* ---------- Synchronisation ---------- */

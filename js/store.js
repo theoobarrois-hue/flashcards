@@ -146,7 +146,7 @@
 
   FC.load = function () {
     return kvGet('state')
-      .then(function (v) { if (v) state = migrate(v); return state; })
+      .then(function (v) { if (v) { state = migrate(v); try { if (migrateRecap()) touch(true); } catch (e) { /* ignore */ } } return state; })
       .catch(function () {
         FC.storage = 'localStorage';
         try {
@@ -174,6 +174,7 @@
   }
   FC.flush = flush;
   function touch(silent) {
+    try { migrateRecap(); } catch (e) { /* ignore */ }
     if (timer) clearTimeout(timer);
     timer = setTimeout(flush, 250);
     if (!silent) emit();
@@ -260,18 +261,41 @@
     var s = FC.set(setId), ex = null;
     if (!s) return null;
     s.chapters.forEach(function (c) { if (FC.isRecapCh(c)) ex = c; });
-    if (!ex) { ex = { id: FC.uid(), title: FC.RECAP_CH, o: FC.ord() }; s.chapters.push(ex); touch(); }
+    if (!ex) { ex = { id: 'rc-' + s.id, title: FC.RECAP_CH, o: FC.ord() }; s.chapters.push(ex); touch(); }
     return ex;
   };
+  function recapIdOf(set) {
+    var id = null;
+    set.chapters.forEach(function (c) { if (FC.isRecapCh(c)) id = c.id; });
+    return id;
+  }
+  /* Le Récap est indépendant : ses cartes sont des copies (chapitre caché), supprimer dans un chapitre ne touche pas le Récap.
+     Les anciennes cartes « étoilées » sont converties en copies (ids déterministes → pas de doublons entre appareils). */
+  function migrateRecap() {
+    var changed = false;
+    state.sets.forEach(function (set) {
+      var rid = recapIdOf(set), have = null;
+      set.cards.slice().forEach(function (c) {
+        if (!c.star || (rid && c.ch === rid)) return;
+        if (!rid) { rid = 'rc-' + set.id; set.chapters.push({ id: rid, title: FC.RECAP_CH, o: FC.ord() }); }
+        if (!have) { have = {}; set.cards.forEach(function (x) { if (x.ch === rid) have[x.f + '\u0000' + x.b] = 1; }); }
+        var k = c.f + '\u0000' + c.b;
+        if (!have[k]) { set.cards.push({ id: 'r-' + c.id, ch: rid, f: c.f, b: c.b, n: c.n || '', star: true, o: FC.ord() }); have[k] = 1; }
+        c.star = false;
+        changed = true;
+      });
+    });
+    return changed;
+  }
+  FC.migrateRecap = migrateRecap;
   FC.cardsOf = function (set, tab) {
-    if (tab === 'recap') return set.cards.filter(function (c) { return c.star; });
+    if (tab === 'recap') { var rid = recapIdOf(set); return set.cards.filter(function (c) { return c.ch === rid; }); }
     if (tab === 'errors') return set.cards.filter(function (c) { return set.errors.indexOf(c.id) >= 0; });
     return set.cards.filter(function (c) { return c.ch === tab; });
   };
   FC.tabsOf = function (set) {
-    var tabs = [{ key: 'recap', title: 'Récap Ultra-Important', short: 'Récap' }];
+    var tabs = [{ key: 'recap', title: set.recapTitle || 'Récap Ultra-Important', short: set.recapTitle || 'Récap' }];
     set.chapters.forEach(function (c) { if (!FC.isRecapCh(c)) tabs.push({ key: c.id, title: c.title, short: c.title }); });
-    tabs.push({ key: 'errors', title: 'Mes erreurs', short: 'Erreurs' });
     tabs.forEach(function (t) { t.n = FC.cardsOf(set, t.key).length; });
     return tabs;
   };
@@ -381,6 +405,12 @@
     s.chapters.forEach(function (c) { if (c.id === chId) c.title = String(title).trim(); });
     touch();
   };
+  FC.renameRecap = function (setId, title) {
+    var s = FC.set(setId);
+    if (!s) return;
+    s.recapTitle = String(title || '').trim();
+    touch();
+  };
   FC.deleteChapter = function (setId, chId) {
     var s = FC.set(setId);
     if (!s) return;
@@ -393,6 +423,17 @@
   };
 
   /* ---------- Cartes ---------- */
+  FC.addRecapCopy = function (setId, data) {
+    var s = FC.set(setId);
+    if (!s) return null;
+    var rc = FC.recapChapter(setId), k = data.f + '\u0000' + data.b, dup = null;
+    s.cards.forEach(function (x) { if (x.ch === rc.id && x.f + '\u0000' + x.b === k) dup = x; });
+    if (dup) return dup;
+    var c = { id: FC.uid(), ch: rc.id, f: data.f || '', b: data.b || '', n: data.n || '', star: true, o: FC.ord() };
+    s.cards.push(c);
+    touch();
+    return c;
+  };
   FC.addCard = function (setId, data) {
     var s = FC.set(setId);
     if (!s) return null;
@@ -424,6 +465,13 @@
     if (i >= 0) s.errors.splice(i, 1); else s.errors.push(cardId);
     touch();
     return i < 0;
+  };
+  FC.setError = function (setId, cardId, on) {
+    var s = FC.set(setId);
+    if (!s) return;
+    var i = s.errors.indexOf(cardId);
+    if (on && i < 0) { s.errors.push(cardId); touch(); }
+    else if (!on && i >= 0) { s.errors.splice(i, 1); touch(); }
   };
   FC.markSeen = function (setId, cardId) {
     var s = FC.set(setId);
@@ -511,31 +559,32 @@
       p.errors.forEach(function (i) { var id = set.cards[i].id; if (set.errors.indexOf(id) < 0) set.errors.push(id); });
       set.seen = []; set.pos = {}; set.tab = set.chapters[0].id;
     } else {
-      var have = {};
-      set.cards.forEach(function (c) { have[key(c)] = c; });
+      var have = {}, rid0 = recapIdOf(set);
+      function kk(c, rc) { return (rc ? 'R\u0001' : '') + key(c); }
+      set.cards.forEach(function (c) { have[kk(c, rid0 && c.ch === rid0)] = c; });
       var chMap = p.chapters.map(function (pc) {
+        if (FC.isRecapCh(pc)) return FC.recapChapter(set.id).id;
         var ex = null;
         set.chapters.forEach(function (c) { if (!ex && FC.norm(c.title) === FC.norm(pc.title)) ex = c; });
         if (!ex) { ex = { id: FC.uid(), title: pc.title, o: FC.ord() }; set.chapters.push(ex); }
         return ex.id;
       });
-      /* Les nouvelles cartes sont insérées à leur place (après la carte qui les précède dans le fichier),
-         et les cartes « Récap seulement » rejoignent le chapitre de leur voisine au lieu d'aller à la fin. */
+      /* Nouvelles cartes insérées à leur place (après la carte qui les précède dans le fichier) ;
+         les cartes du Récap restent dans le Récap (indépendant des chapitres). */
       var prev = null;
       p.cards.forEach(function (c) {
-        var k = key(c);
-        if (have[k]) { skipped++; if (c.star) have[k].star = true; prev = have[k]; return; }
         var isRc = FC.isRecapCh(p.chapters[c.ch]);
-        var chId = (isRc && prev) ? prev.ch : chMap[c.ch];
-        var nc = { id: FC.uid(), ch: chId, f: c.f, b: c.b, n: c.n, star: isRc ? true : c.star, o: FC.ord() };
-        var at = prev ? set.cards.indexOf(prev) : -1;
-        if (prev && prev.ch === chId && at >= 0) set.cards.splice(at + 1, 0, nc);
-        else if (isRc && prev && at >= 0) set.cards.splice(at + 1, 0, nc);
+        var k = kk(c, isRc);
+        if (have[k]) { skipped++; if (!isRc) { prev = have[k]; if (c.star) have[k].star = true; } return; }
+        var chId = isRc ? FC.recapChapter(set.id).id : chMap[c.ch];
+        var nc = { id: FC.uid(), ch: chId, f: c.f, b: c.b, n: c.n, star: isRc || !!c.star, o: FC.ord() };
+        var at = (!isRc && prev) ? set.cards.indexOf(prev) : -1;
+        if (!isRc && prev && prev.ch === chId && at >= 0) set.cards.splice(at + 1, 0, nc);
         else set.cards.push(nc);
-        have[k] = nc; added++; prev = nc;
+        have[k] = nc; added++; if (!isRc) prev = nc;
       });
       p.errors.forEach(function (i) {
-        var ex = have[key(p.cards[i])];
+        var ex = have[kk(p.cards[i], FC.isRecapCh(p.chapters[p.cards[i].ch]))];
         if (ex && set.errors.indexOf(ex.id) < 0) set.errors.push(ex.id);
       });
     }

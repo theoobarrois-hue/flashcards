@@ -16,7 +16,6 @@
     if (!p.length) return { v: 'lib' };
     if (p[0] === 'f' && p[1]) return { v: 'folder', id: p[1] };
     if (p[0] === 's' && p[1]) return { v: 'set', id: p[1], tab: p[2] || null };
-    if (p[0] === 'errors') return { v: 'errors' };
     return { v: 'lib' };
   }
   function go(hash) {
@@ -110,7 +109,6 @@
     var t = FC.totals();
     var h = '<div class="side-in"><div class="brand">' + logo() + '<span>Flashcards</span></div>' +
       '<button type="button" class="nav' + (route.v === 'lib' ? ' on' : '') + '" data-act="lib">' + ic('grid', 18) + '<span>Bibliothèque</span></button>' +
-      '<button type="button" class="nav' + (route.v === 'errors' ? ' on' : '') + '" data-act="errors">' + ic('flag', 18) + '<span>Mes erreurs</span>' + (t.errors ? '<span class="cnt">' + t.errors + '</span>' : '') + '</button>' +
       '<div class="side-h"><span>Dossiers</span><button type="button" class="iconbtn sm" data-act="newFolder" aria-label="Nouveau dossier">' + ic('plus', 16, 2.2) + '</button></div>' +
       '<div class="tree">' + (FC.children(null).length ? treeHTML(null, 0, activeFolders()) : '<p class="side-empty">Aucun dossier pour l’instant.</p>') +
       FC.setsIn(null).map(function (s) {
@@ -128,7 +126,6 @@
     var t = FC.totals();
     $('#tabbar').innerHTML =
       '<button type="button" class="tb' + (route.v === 'lib' || route.v === 'folder' || route.v === 'set' ? ' on' : '') + '" data-act="lib">' + ic('grid', 24, 1.9) + '<span>Bibliothèque</span></button>' +
-      '<button type="button" class="tb' + (route.v === 'errors' ? ' on' : '') + '" data-act="errors">' + ic('flag', 24, 1.9) + '<span>Erreurs</span>' + (t.errors ? '<i class="tbadge">' + t.errors + '</i>' : '') + '</button>' +
       '<button type="button" class="tb" data-act="import" data-folder="">' + ic('download', 24, 1.9) + '<span>Importer</span></button>';
   }
 
@@ -168,7 +165,7 @@
     var meta = n.sets || n.folders ? FC.plural(n.cards, 'carte') + ' · ' + FC.plural(n.sets, 'jeu', 'jeux') : 'Vide';
     return '<div class="ftile"><button type="button" class="ftile-btn" data-act="openFolder" data-id="' + f.id + '" data-ctx="folderMenu" aria-label="Ouvrir ' + esc(f.name) + '">' +
       UI.folderSVG(c) + '<span class="ftxt"><span class="fname">' + esc(f.name) + '</span><span class="fmeta">' + meta + '</span></span>' +
-      (n.errors ? '<span class="ebadge"><i></i>' + n.errors + '</span>' : '') + '</button>' +
+      '</button>' +
       '<button type="button" class="kebab" data-act="folderMenu" data-id="' + f.id + '" aria-label="Actions du dossier ' + esc(f.name) + '">' + ic('more', 18) + '</button></div>';
   }
 
@@ -177,7 +174,6 @@
     var meta = [];
     if (withPath && s.folder) meta.push(FC.pathNames(s.folder).join(' › '));
     meta.push(FC.plural(s.cards.length, 'carte'));
-    if (nerr) meta.push(FC.plural(nerr, 'erreur'));
     return '<div class="srow"><button type="button" class="srow-main" data-act="openSet" data-id="' + s.id + '" data-ctx="setMenu">' + UI.stackIcon(c) +
       '<span class="stxt"><span class="stitle">' + esc(s.title) + '</span><span class="smeta">' + esc(meta.join(' · ')) + '</span>' +
       '<svg class="pbar" width="100%" height="5" viewBox="0 0 100 5" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="5" rx="2.5" fill="#e9dfcb"/><rect width="' + pct + '" height="5" rx="2.5" fill="' + c.front + '"/></svg></span>' +
@@ -214,8 +210,6 @@
       h += '<div class="hcard resume">' + UI.stackIcon(lc, 58) + '<div class="hmain"><div class="eyebrow">Reprendre</div><div class="htitle">' + esc(ls.title) + '</div><div class="hmeta"><svg width="100%" height="5" viewBox="0 0 100 5" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="5" rx="2.5" fill="#e6dcc8"/><rect width="' + (lt.length ? Math.round(100 * li / lt.length) : 0) + '" height="5" rx="2.5" fill="' + lc.front + '"/></svg><span>' + esc(ls.folder ? FC.pathNames(ls.folder).join(' › ') + ' · ' : '') + 'carte ' + li + ' / ' + lt.length + '</span></div></div>' +
         '<button type="button" class="btn dark" data-act="resume">Reprendre</button></div>';
     }
-    h += '<div class="hcard errs' + (t.errors ? '' : ' none') + '"><div class="hmain"><div class="etitle">' + (t.errors ? FC.plural(t.errors, 'erreur') : 'Aucune erreur') + '</div><div class="esub">' + (t.errors ? 'à retravailler' : 'Marque une carte pendant la révision pour la retrouver ici.') + '</div></div>' +
-      (t.errors ? '<button type="button" class="btn light" data-act="errors">' + ic('flag', 16, 2.2) + 'Revoir</button>' : '') + '</div></div>';
     if (needsBackup()) h += '<div class="nag"><span>Tes données sont uniquement sur cet appareil. Pense à faire une sauvegarde.</span><button type="button" class="link" data-act="backup">Sauvegarder</button></div>';
     var top = FC.children(null);
     if (top.length) h += '<div class="sec-h"><h3>Mes dossiers</h3></div><div class="fgrid">' + top.map(folderTile).join('') + '</div>';
@@ -234,7 +228,7 @@
       '<div class="mback"><button type="button" class="backbtn" data-act="' + (up ? 'openFolder' : 'lib') + '"' + (up ? ' data-id="' + up + '"' : '') + '>' + ic('chevL', 20, 2.6) + '<span>' + esc(up ? FC.folder(up).name : 'Bibliothèque') + '</span></button><button type="button" class="iconbtn" data-act="folderMenu" data-id="' + f.id + '" aria-label="Actions du dossier">' + ic('more', 22) + '</button></div>' +
       crumbs +
       '<header class="fhead"><div class="fmini">' + UI.folderSVG(c) + '</div><div class="fhead-t"><h1>' + esc(f.name) + '</h1><div class="sub">' + FC.plural(n.cards, 'carte') + ' · ' + FC.plural(n.sets, 'jeu', 'jeux') + '</div>' +
-      (n.errors ? '<div class="pill"><i></i>' + FC.plural(n.errors, 'erreur') + '</div>' : '') + '</div>' +
+      '</div>' +
       '<button type="button" class="iconbtn only-d" data-act="folderMenu" data-id="' + f.id + '" aria-label="Actions du dossier">' + ic('more', 22) + '</button></header>';
     var kids = FC.children(f.id);
     h += '<div class="sec-h"><h3>Sous-dossiers</h3></div><div class="fgrid">' + kids.map(folderTile).join('') +
@@ -268,10 +262,11 @@
       (set ? '<div class="segwrap"><div class="segs" id="rvTabs" role="tablist">' + tabsHTML(set) + '</div></div>' : '') +
       '<div class="rv-body"><div class="rv-title"><h1 id="rvTitle">' + esc(title) + '</h1><span class="rv-r"><button type="button" class="shufbtn' + (SHUF.on ? ' on' : '') + '" data-act="shuffle" id="shufBtn" aria-pressed="' + SHUF.on + '">' + ic('shuffle', 15, 2.2) + '<span>Mélanger</span></button><span id="counter" aria-live="polite"></span></span></div>' +
       '<div id="cardHost"></div>' +
-      '<div class="controls"><button type="button" class="cbtn" data-act="prev" id="btnPrev">' + ic('chevL', 18, 2.4) + '<span>Précédente</span></button>' +
-      '<button type="button" class="cbtn" data-act="err" id="errBtn">' + ic('flag', 18) + '<span id="errLbl">Marquer comme erreur</span></button>' +
+      '<div class="controls"><button type="button" class="cbtn" data-act="prev" id="btnPrev" aria-label="Carte précédente">' + ic('chevL', 18, 2.4) + '<span>Précédente</span></button>' +
+      '<button type="button" class="cbtn no" data-act="swNo" id="btnNo" aria-label="Erreur">' + ic('x', 20, 2.6) + '<span>Erreur</span></button>' +
       '<button type="button" class="cbtn dark" data-act="flip">' + ic('flip', 18, 2) + '<span>Retourner</span><kbd>Espace</kbd></button>' +
-      '<button type="button" class="cbtn" data-act="next" id="btnNext"><span>Suivante</span>' + ic('chevR', 18, 2.4) + '</button></div>' +
+      '<button type="button" class="cbtn ok" data-act="swOk" id="btnOk" aria-label="Je connais">' + ic('check', 20, 2.6) + '<span>Je connais</span></button></div>' +
+      '<p class="swhelp">Glisse la carte : <b>à droite</b> = je connais · <b>à gauche</b> = erreur</p>' +
       '<div id="segInfo"></div></div></div>';
   }
 
@@ -284,12 +279,11 @@
 
   function cardHTML(c, set) {
     var note = c.n ? '<div class="note">' + FC.safe(c.n) + '</div>' : '';
-    var on = set.errors.indexOf(c.id) >= 0;
     return '<div class="stack s2" aria-hidden="true"></div><div class="stack s1" aria-hidden="true"></div>' +
       '<div class="card' + (R.flipped ? ' flipped' : '') + '" id="card" data-act="flip" tabindex="0" role="button" aria-label="Retourner la carte"><div class="inner">' +
       '<div class="face front"><span class="tag q"><i></i>Question</span><div class="content">' + FC.safe(c.f) + '</div></div>' +
       '<div class="face back"><span class="tag a"><i></i>Réponse</span><div class="content">' + FC.safe(c.b) + note + '</div></div></div>' +
-      '<button type="button" class="flagbtn' + (on ? ' on' : '') + '" data-act="err" aria-label="' + (on ? 'Retirer des erreurs' : 'Marquer comme erreur') + '" aria-pressed="' + on + '">' + ic('flag', 22, 1.9) + '</button></div>';
+      '<div class="tint"></div><div class="swipe-hint ok">Je connais</div><div class="swipe-hint no">Erreur</div></div>';
   }
 
   function segsHTML(set) {
@@ -317,17 +311,25 @@
     var cc = cur();
     while (n && !cc) { R.list.splice(R.idx, 1); n = R.list.length; R.idx = Math.min(R.idx, Math.max(0, n - 1)); cc = cur(); }
     var set = R.kind === 'set' ? FC.set(R.setId) : null;
+    if (R.done && n) {
+      host.innerHTML = '<div class="empty-card done"><h2>Tour terminé</h2><p><b class="okn">' + FC.plural(R.okN || 0, 'carte connue', 'cartes connues') + '</b> · <b class="non">' + FC.plural(R.noN || 0, 'erreur') + '</b></p><button type="button" class="btn primary" data-act="restart">Recommencer</button></div>';
+      R.sig = '';
+      $('#counter').textContent = n + ' cartes';
+      $('#segInfo').innerHTML = set ? segsHTML(set) : '';
+      ['btnNo', 'btnOk'].forEach(function (id) { var b = $('#' + id); if (b) b.disabled = true; });
+      $$('.controls .cbtn.dark').forEach(function (b) { b.disabled = true; });
+      var pv = $('#btnPrev'); if (pv) pv.disabled = false;
+      return;
+    }
     if (!cc) {
       var msg, cta = '';
-      if (R.kind === 'errors') msg = '<h2>Aucune erreur marquée</h2><p>Pendant une révision, touche le drapeau pour retrouver ici les cartes à retravailler.</p>';
-      else if (R.tab === 'errors') msg = '<h2>Aucune erreur dans ce jeu</h2><p>Touche le drapeau sur une carte pour la marquer.</p>';
-      else if (R.tab === 'recap') msg = '<h2>Le Récap est vide</h2><p>Coche « Ultra-important » dans une carte pour la placer ici.</p>';
+      if (R.tab === 'recap') msg = '<h2>Le Récap est vide</h2><p>Coche « Ultra-important » dans une carte pour la placer ici.</p>';
       else { msg = '<h2>Ce chapitre est vide</h2><p>Ajoute ta première carte.</p>'; cta = '<button type="button" class="btn primary" data-act="addCard">' + ic('plus', 15, 2.4) + 'Ajouter une carte</button>'; }
       host.innerHTML = '<div class="empty-card">' + msg + cta + '</div>';
       R.sig = '';
       $('#counter').textContent = '';
       $('#segInfo').innerHTML = '';
-      ['btnPrev', 'btnNext', 'errBtn'].forEach(function (id) { var b = $('#' + id); if (b) b.disabled = true; });
+      ['btnPrev', 'btnNo', 'btnOk'].forEach(function (id) { var b = $('#' + id); if (b) b.disabled = true; });
       $$('.controls .cbtn.dark').forEach(function (b) { b.disabled = true; });
       return;
     }
@@ -338,16 +340,11 @@
       host.innerHTML = cardHTML(c, s);
       UI.typeset(host);
       R.sig = sig;
+      if (R.anim) { var ce = $('#card'); if (ce) ce.classList.add('enter'); }
     }
-    var on = s.errors.indexOf(c.id) >= 0;
-    var fb = $('.flagbtn', host);
-    if (fb) { fb.classList.toggle('on', on); fb.setAttribute('aria-pressed', on); fb.setAttribute('aria-label', on ? 'Retirer des erreurs' : 'Marquer comme erreur'); }
-    var el = $('#errBtn');
-    if (el) { el.classList.toggle('on', on); $('#errLbl').textContent = on ? 'Erreur marquée — retirer' : 'Marquer comme erreur'; }
+    R.anim = false;
     $('#counter').textContent = 'Carte ' + (R.idx + 1) + ' sur ' + n;
     $('#btnPrev').disabled = R.idx === 0;
-    $('#btnNext').disabled = R.idx === n - 1;
-    if (R.kind === 'errors') $('#rvSub').textContent = (s.folder ? FC.pathNames(s.folder).join(' › ') + ' › ' : '') + s.title;
     FC.markSeen(s.id, c.id);
     $('#segInfo').innerHTML = segsHTML(s);
     if (R.kind === 'set') FC.remember(s.id, R.tab, R.idx);
@@ -395,7 +392,88 @@
     if (i < 0 || i > R.list.length - 1) return;
     R.idx = i;
     R.flipped = false;
+    R.done = false;
+    R.anim = true;
+    R.sig = '';
     paintCard();
+  }
+  function restart() {
+    if (!R) return;
+    R.done = false; R.okN = 0; R.noN = 0; R.idx = 0; R.flipped = false; R.anim = true; R.sig = '';
+    paintCard();
+  }
+
+  /* ---------- Glisser : droite = je connais, gauche = erreur ---------- */
+  var busy = false, D = null, noClick = false;
+  function hints(card, p) {
+    var ok = $('.swipe-hint.ok', card), no = $('.swipe-hint.no', card), t = $('.tint', card);
+    if (ok) ok.style.opacity = p > 0 ? Math.min(1, p * 1.2) : 0;
+    if (no) no.style.opacity = p < 0 ? Math.min(1, -p * 1.2) : 0;
+    if (t) t.style.background = p > 0 ? 'rgba(47,125,79,' + (0.2 * Math.min(1, p)).toFixed(3) + ')' : p < 0 ? 'rgba(196,85,63,' + (0.2 * Math.min(1, -p)).toFixed(3) + ')' : 'transparent';
+  }
+  function commit(kind) {
+    if (!R || busy || R.done) return;
+    var cc = cur(), card = $('#card');
+    if (!cc || !card) return;
+    busy = true;
+    var dir = kind === 'ok' ? 1 : -1, w = Math.max(window.innerWidth, 600);
+    card.classList.remove('dragging');
+    card.classList.add('leaving');
+    hints(card, dir);
+    card.style.transform = 'translateX(' + (dir * w) + 'px) rotate(' + (dir * 22) + 'deg)';
+    card.style.opacity = '0';
+    setTimeout(function () {
+      busy = false;
+      if (!R || !FC.findCard(cc.set, cc.card.id)) return;
+      FC.setError(cc.set.id, cc.card.id, kind === 'no');
+      if (kind === 'ok') R.okN = (R.okN || 0) + 1; else R.noN = (R.noN || 0) + 1;
+      R.flipped = false; R.anim = true; R.sig = '';
+      if (R.idx >= R.list.length - 1) R.done = true; else R.idx++;
+      paintCard();
+    }, 270);
+  }
+  function dragBind() {
+    document.addEventListener('click', function (e) {
+      if (noClick) { e.stopPropagation(); e.preventDefault(); }
+    }, true);
+    document.addEventListener('pointerdown', function (e) {
+      if (!R || busy || R.done) return;
+      var card = e.target.closest && e.target.closest('#card');
+      if (!card || e.target.closest('a,button')) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      D = { id: e.pointerId, x: e.clientX, y: e.clientY, t: Date.now(), dx: 0, drag: false, card: card, lx: e.clientX, lt: Date.now(), v: 0 };
+    });
+    document.addEventListener('pointermove', function (e) {
+      if (!D || e.pointerId !== D.id) return;
+      var dx = e.clientX - D.x, dy = e.clientY - D.y;
+      if (!D.drag) {
+        if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+          D.drag = true;
+          D.card.classList.add('dragging');
+          try { D.card.setPointerCapture(e.pointerId); } catch (x) { /* ok */ }
+        } else if (Math.abs(dy) > 14) { D = null; return; }
+        else return;
+      }
+      var now = Date.now();
+      if (now - D.lt > 0) D.v = (e.clientX - D.lx) / (now - D.lt);
+      D.lx = e.clientX; D.lt = now; D.dx = dx;
+      D.card.style.transform = 'translateX(' + dx + 'px) translateY(' + (dy * 0.12).toFixed(1) + 'px) rotate(' + (dx / 22).toFixed(2) + 'deg)';
+      hints(D.card, Math.max(-1, Math.min(1, dx / 110)));
+    });
+    function end(e) {
+      if (!D || e.pointerId !== D.id) return;
+      var d = D; D = null;
+      if (!d.drag) return;
+      noClick = true; setTimeout(function () { noClick = false; }, 120);
+      if (Math.abs(d.dx) > 110 || (Math.abs(d.dx) > 45 && Math.abs(d.v) > 0.55 && (d.v > 0) === (d.dx > 0))) commit(d.dx > 0 ? 'ok' : 'no');
+      else {
+        d.card.classList.remove('dragging');
+        d.card.style.transform = '';
+        hints(d.card, 0);
+      }
+    }
+    document.addEventListener('pointerup', end);
+    document.addEventListener('pointercancel', end);
   }
   function flip() {
     if (!R || !R.list.length) return;
@@ -403,13 +481,6 @@
     var c = $('#card');
     if (c) c.classList.toggle('flipped', R.flipped);
   }
-  function toggleErr() {
-    var cc = cur();
-    if (!cc) return;
-    var now = FC.toggleError(cc.set.id, cc.card.id);
-    UI.toast(now ? 'Marquée comme erreur.' : 'Retirée des erreurs.');
-  }
-
   /* ---------- Actions : dossiers, jeux, cartes ---------- */
   function createFolder(parent) {
     UI.askName(parent ? 'Nouveau sous-dossier' : 'Nouveau dossier', 'Nom', '', 'Créer').then(function (name) {
@@ -553,14 +624,16 @@
       }
       var ch = r.ch;
       if (r.ch === '__new') ch = FC.addChapter(setId, r.newCh).id;
-      var star = r.star;
-      if (r.ch === '__recap') { ch = FC.recapChapter(setId).id; star = true; }
-      var data = { f: r.f, b: r.b, n: r.n, star: star, ch: ch };
-      if (card) { FC.updateCard(setId, card.id, data); UI.toast('Carte modifiée.'); }
+      var star = false, rcid = FC.recapChapter(setId).id;
+      if (r.ch === '__recap') ch = rcid;
+      var inRecap = ch === rcid;
+      var data = { f: r.f, b: r.b, n: r.n, star: inRecap, ch: ch };
+      if (card) { FC.updateCard(setId, card.id, data); UI.toast('Carte modifiée.'); if (r.star && !inRecap) FC.addRecapCopy(setId, data); }
       else {
         var nc = FC.addCard(setId, data);
+        if (r.star && !inRecap) FC.addRecapCopy(setId, data);
         UI.toast('Carte ajoutée.');
-        if (r.act === 'saveadd') { editCard(setId, null, { ch: ch, star: star }); return; }
+        if (r.act === 'saveadd') { editCard(setId, null, { ch: inRecap ? '__recap' : ch, star: false }); return; }
         if (R && R.kind === 'set' && R.setId === setId) {
           // se placer sur la carte créée si elle est dans l'onglet courant
           var i = -1;
@@ -656,7 +729,9 @@
       case 'prev': nav(-1); break;
       case 'next': nav(1); break;
       case 'flip': flip(); break;
-      case 'err': toggleErr(); break;
+      case 'swNo': commit('no'); break;
+      case 'swOk': commit('ok'); break;
+      case 'restart': restart(); break;
       case 'edit': var cc = cur(); if (cc) editCard(cc.set.id, cc.card); break;
       case 'addCard':
         if (R && R.kind === 'set') {
@@ -695,7 +770,7 @@
     }
   }
 
-  FC.VERSION = 'v17';
+  FC.VERSION = 'v18';
   function refreshApp() {
     var done = function () { location.reload(); };
     var p = Promise.resolve();
@@ -730,23 +805,34 @@
       var tag = e.target && e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.key === 'ArrowLeft') { e.preventDefault(); nav(-1); }
-      else if (e.key === 'ArrowRight') { e.preventDefault(); nav(1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); commit('no'); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); commit('ok'); }
+      else if (e.key === 'ArrowUp' || e.key === 'Backspace') { e.preventDefault(); nav(-1); }
       else if ((e.key === ' ' || e.key === 'Enter') && tag !== 'BUTTON') { e.preventDefault(); flip(); }
-      else if ((e.key === 'f' || e.key === 'F') && tag !== 'BUTTON') { toggleErr(); }
     });
-    /* glisser pour changer de carte */
-    var sx = 0, sy = 0, st = 0, tracking = false;
-    document.addEventListener('touchstart', function (e) {
-      tracking = !!e.target.closest('#cardHost') && e.touches.length === 1;
-      if (tracking) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now(); }
-    }, { passive: true });
-    document.addEventListener('touchend', function (e) {
-      if (!tracking) return;
-      tracking = false;
-      var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
-      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && Date.now() - st < 700) { nav(dx < 0 ? 1 : -1); }
-    }, { passive: true });
+    dragBind();
+    /* renommer un onglet : double-clic ou appui long (discret) */
+    function renameTab(btn) {
+      if (!R || R.kind !== 'set' || !btn) return;
+      var key = btn.dataset.tab, s = FC.set(R.setId);
+      if (!s) return;
+      var tabs = FC.tabsOf(s), t = tabs.filter(function (x) { return x.key === key; })[0];
+      if (!t) return;
+      UI.askName('Renommer l’onglet', 'Nom', t.title).then(function (n) {
+        if (!n || typeof n !== 'string') return;
+        if (key === 'recap') FC.renameRecap(s.id, n);
+        else FC.renameChapter(s.id, key, n);
+      });
+    }
+    document.addEventListener('dblclick', function (e) { var b = e.target.closest && e.target.closest('.seg[data-tab]'); if (b) { e.preventDefault(); renameTab(b); } });
+    var lp = null;
+    document.addEventListener('pointerdown', function (e) {
+      var b = e.target.closest && e.target.closest('.seg[data-tab]');
+      if (!b || e.pointerType === 'mouse') return;
+      clearTimeout(lp);
+      lp = setTimeout(function () { lp = null; noClick = true; setTimeout(function () { noClick = false; }, 400); renameTab(b); }, 600);
+    });
+    ['pointerup', 'pointercancel', 'scroll'].forEach(function (ev) { document.addEventListener(ev, function () { if (lp) { clearTimeout(lp); lp = null; } }, true); });
     $('#file').addEventListener('change', function (e) {
       var files = e.target.files;
       if (files && files.length) doImport(files, pickDefaultFolder);

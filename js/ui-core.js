@@ -236,7 +236,7 @@
       '<label class="field"><span>Note (facultative)</span><input type="text" id="edN" placeholder="Et même $o(x^{2n+1})$." autocomplete="off" data-noenter="1"></label>' +
       '<div class="two"><label class="field"><span>Chapitre</span><select id="edCh">' + chOpts + '</select></label>' +
       '<label class="field" id="edChNewWrap" hidden><span>Nom du chapitre</span><input type="text" id="edChNew" maxlength="120" autocomplete="off" data-noenter="1"></label></div>' +
-      '<label class="chk"><input type="checkbox" id="edStar"><span>Ultra-important <em>(apparaît dans le Récap)</em></span></label>' +
+      '<label class="chk"><input type="checkbox" id="edStar"><span>Ajouter aussi au Récap <em>(copie indépendante)</em></span></label>' +
       '<p class="hint">Formules : <code>$…$</code> dans le texte, <code>$$…$$</code> pour une formule seule. HTML simple autorisé (&lt;b&gt;, &lt;i&gt;).</p>' +
       '<div class="ed-prev"><div class="pv"><span>Aperçu recto</span><div id="pvF" class="pvbox"></div></div><div class="pv"><span>Aperçu verso</span><div id="pvB" class="pvbox"></div></div></div></div>';
     var buttons = [];
@@ -254,7 +254,7 @@
         UI.$('#edF', el).value = FC.toEditor(d.f || '');
         UI.$('#edB', el).value = FC.toEditor(d.b || '');
         UI.$('#edN', el).value = FC.toEditor(d.n || '');
-        UI.$('#edStar', el).checked = !!d.star;
+        UI.$('#edStar', el).checked = false;
         var t = null;
         function prev() {
           UI.$('#pvF', el).innerHTML = UI.fmt(FC.fromEditor(UI.$('#edF', el).value)) || '<i class="ph">—</i>';
