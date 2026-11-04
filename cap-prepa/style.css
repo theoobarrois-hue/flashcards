@@ -91,3 +91,24 @@ button.stat:focus-visible{outline-offset:-3px}
  .stats>.stat:last-child{border-bottom:0}
  .empty-state{padding:36px 8px}
 }
+
+/* ===== Compte, synchronisation, réglages ===== */
+.sync-chip{background:none;color:var(--muted);font-size:10px;padding:6px 8px;border-radius:5px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.sync-chip::before,.sync-dot{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#aab3ab;flex:none}
+.sync-chip[data-state=idle]::before,.sync-dot[data-state=idle],.sync-chip[data-state=ready]::before,.sync-dot[data-state=ready]{background:#2f8a57}
+.sync-chip[data-state=sync]::before,.sync-dot[data-state=sync]{background:#c9a13b;animation:pulse 1s ease-in-out infinite}
+.sync-chip[data-state=error]::before,.sync-dot[data-state=error]{background:#b5442a}
+.sync-chip[data-state=offline]::before,.sync-dot[data-state=offline]{background:#8a8f8a}
+.sync-chip:hover{background:#edf1ec;filter:none}
+.nav .sync-dot{margin-left:auto}
+@keyframes pulse{50%{opacity:.35}}
+#settingsDialog{width:480px;max-height:88vh;overflow:auto}
+.set-block{border-top:1px solid var(--border);padding:18px 0 4px}
+.set-block:first-of-type{border-top:0;padding-top:0}
+.set-block h3{font-size:13px;margin:0 0 10px}
+.set-block .backup-actions{margin:14px 0 12px}
+.set-line{font-size:13px;margin:0 0 4px}
+#syncInfo.error{color:#9a341e}
+.backup-actions button:disabled{opacity:.6;cursor:default}
+@media(max-width:760px){.sync-chip{font-size:10px;padding:6px 4px}.save-controls{gap:4px}.save-state{display:none}}
+@media(prefers-reduced-motion:reduce){.sync-dot,.sync-chip::before{animation:none!important}}
