@@ -359,9 +359,9 @@ code{background:#f1e9d7;padding:1px 5px;border-radius:5px;font-size:.92em}
   .tag{left:22px}
   .controls{margin-top:8px;padding-bottom:6px}
   .controls{gap:8px}
-  .cbtn[data-act=prev]{width:50px;height:58px;padding:0;border-radius:29px}
-  .cbtn[data-act=prev] span{display:none}
-  .cbtn.ok,.cbtn.no{height:58px;width:58px;padding:0;border-radius:29px}
+  .cbtn[data-act=prev],.cbtn[data-act=next]{width:46px;height:58px;padding:0;border-radius:29px}
+  .cbtn[data-act=prev] span,.cbtn[data-act=next] span{display:none}
+  .cbtn.ok,.cbtn.no{height:58px;width:54px;padding:0;border-radius:29px}
   .cbtn.ok span,.cbtn.no span{display:none}
   .swhelp{display:none}
   .cbtn.dark{flex:1;height:58px;font-size:17px;border-radius:29px}

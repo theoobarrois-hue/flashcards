@@ -301,6 +301,23 @@
     return p;
   }
 
+  /* À l'import d'un jeu, le Récap du fichier est ignoré : le Récap, c'est uniquement ce que tu coches toi-même. */
+  function stripRecap(p) {
+    var keep = [], map = {};
+    p.chapters.forEach(function (c, i) { if (!FC.isRecapCh(c)) { map[i] = keep.length; keep.push(c); } });
+    if (!keep.length) keep.push({ title: 'Cartes' });
+    var cardIdx = {}, cards = [];
+    p.cards.forEach(function (c, i) {
+      if (map[c.ch] === undefined) return;
+      cardIdx[i] = cards.length;
+      cards.push({ ch: map[c.ch], f: c.f, b: c.b, n: c.n, star: false });
+    });
+    var errs = [];
+    (p.errors || []).forEach(function (i) { if (cardIdx[i] !== undefined) errs.push(cardIdx[i]); });
+    p.chapters = keep; p.cards = cards; p.errors = errs;
+    return p;
+  }
+
   /* Lit un fichier : soit une sauvegarde / un export de l'appli (données intégrées), soit un fichier au format cahier */
   FC.parseFile = function (file) {
     return file.text().then(function (text) {
@@ -309,10 +326,11 @@
       if (node) {
         var j;
         try { j = JSON.parse(node.textContent); } catch (e) { throw new Error('Fichier abîmé.'); }
-        if (j && (j.kind === 'set' || j.kind === 'library')) return { kind: j.kind, data: j, name: file.name };
+        if (j && j.kind === 'set') return { kind: 'set', data: stripRecap(j), name: file.name };
+        if (j && j.kind === 'library') return { kind: 'library', data: j, name: file.name };
       }
       return harvest(text).then(function (h) {
-        var d = portableFromHarvest(h);
+        var d = stripRecap(portableFromHarvest(h));
         if (!d.cards.length) throw new Error('Aucune carte trouvée dans ce fichier. Envoie-le moi, je l’adapte.');
         return { kind: 'set', data: d, name: file.name };
       }, function (err) {

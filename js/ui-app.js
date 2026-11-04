@@ -265,7 +265,8 @@
       '<div class="controls"><button type="button" class="cbtn" data-act="prev" id="btnPrev" aria-label="Carte précédente">' + ic('chevL', 18, 2.4) + '<span>Précédente</span></button>' +
       '<button type="button" class="cbtn no" data-act="swNo" id="btnNo" aria-label="Erreur">' + ic('x', 20, 2.6) + '<span>Erreur</span></button>' +
       '<button type="button" class="cbtn dark" data-act="flip">' + ic('flip', 18, 2) + '<span>Retourner</span><kbd>Espace</kbd></button>' +
-      '<button type="button" class="cbtn ok" data-act="swOk" id="btnOk" aria-label="Je connais">' + ic('check', 20, 2.6) + '<span>Je connais</span></button></div>' +
+      '<button type="button" class="cbtn ok" data-act="swOk" id="btnOk" aria-label="Je connais">' + ic('check', 20, 2.6) + '<span>Je connais</span></button>' +
+      '<button type="button" class="cbtn" data-act="next" id="btnNext" aria-label="Carte suivante"><span>Suivante</span>' + ic('chevR', 18, 2.4) + '</button></div>' +
       '<p class="swhelp">Glisse la carte : <b>à droite</b> = je connais · <b>à gauche</b> = erreur</p>' +
       '<div id="segInfo"></div></div></div>';
   }
@@ -335,7 +336,7 @@
       R.sig = '';
       $('#counter').textContent = '';
       $('#segInfo').innerHTML = '';
-      ['btnPrev', 'btnNo', 'btnOk'].forEach(function (id) { var b = $('#' + id); if (b) b.disabled = true; });
+      ['btnPrev', 'btnNo', 'btnOk', 'btnNext'].forEach(function (id) { var b = $('#' + id); if (b) b.disabled = true; });
       $$('.controls .cbtn.dark').forEach(function (b) { b.disabled = true; });
       return;
     }
@@ -351,6 +352,7 @@
     R.anim = false;
     $('#counter').textContent = 'Carte ' + (R.idx + 1) + ' sur ' + n;
     $('#btnPrev').disabled = R.idx === 0;
+    $('#btnNext').disabled = R.idx === n - 1;
     FC.markSeen(s.id, c.id);
     $('#segInfo').innerHTML = segsHTML(s);
     if (R.kind === 'set') FC.remember(s.id, R.tab, R.idx);
@@ -660,7 +662,11 @@
       if (r.ch === '__recap') ch = rcid;
       var inRecap = ch === rcid;
       var data = { f: r.f, b: r.b, n: r.n, star: inRecap, ch: ch };
-      if (card) { FC.updateCard(setId, card.id, data); UI.toast('Carte modifiée.'); if (r.star && !inRecap) FC.addRecapCopy(setId, data); }
+      if (card) {
+        var of = card.f, ob = card.b;
+        FC.updateCard(setId, card.id, data); UI.toast('Carte modifiée.');
+        if (!inRecap) { if (r.star) FC.addRecapCopy(setId, data); else FC.removeRecapCopy(setId, of, ob); }
+      }
       else {
         var nc = FC.addCard(setId, data);
         if (r.star && !inRecap) FC.addRecapCopy(setId, data);
@@ -802,7 +808,7 @@
     }
   }
 
-  FC.VERSION = 'v20';
+  FC.VERSION = 'v21';
   function refreshApp() {
     var done = function () { location.reload(); };
     var p = Promise.resolve();

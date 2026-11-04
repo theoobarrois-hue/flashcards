@@ -435,6 +435,17 @@
     touch();
     return c;
   };
+  FC.removeRecapCopy = function (setId, f, b) {
+    var s = FC.set(setId), rid = s && recapIdOf(s);
+    if (!s || !rid) return;
+    var n = s.cards.length;
+    s.cards = s.cards.filter(function (x) { return !(x.ch === rid && x.f === f && x.b === b); });
+    if (s.cards.length !== n) touch();
+  };
+  FC.hasRecapCopy = function (set, f, b) {
+    var rid = recapIdOf(set);
+    return !!rid && set.cards.some(function (x) { return x.ch === rid && x.f === f && x.b === b; });
+  };
   FC.addCard = function (setId, data) {
     var s = FC.set(setId);
     if (!s) return null;

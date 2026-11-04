@@ -254,7 +254,7 @@
         UI.$('#edF', el).value = FC.toEditor(d.f || '');
         UI.$('#edB', el).value = FC.toEditor(d.b || '');
         UI.$('#edN', el).value = FC.toEditor(d.n || '');
-        UI.$('#edStar', el).checked = false;
+        UI.$('#edStar', el).checked = !!(card && !FC.isRecapCh(set.chapters.filter(function (x) { return x.id === card.ch; })[0]) && FC.hasRecapCopy(set, card.f, card.b));
         var t = null;
         function prev() {
           UI.$('#pvF', el).innerHTML = UI.fmt(FC.fromEditor(UI.$('#edF', el).value)) || '<i class="ph">—</i>';
