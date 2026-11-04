@@ -192,6 +192,7 @@ h1{margin:0;font:600 46px/1.05 var(--serif);letter-spacing:-.02em}
 .content .katex-display{margin:.4em 0;overflow-x:auto;overflow-y:hidden;padding:.1em 0}
 .note{width:72%;margin:20px auto 0;padding-top:16px;border-top:1px dashed #cfc3ab;font:400 16px/1.5 var(--sans);color:#5b5348}
 .note .katex{font-size:1.05em}
+.nl{display:inline-block;margin-right:.55em;font-size:.78em;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8a7d68}
 .flagbtn{position:absolute;top:12px;right:16px;z-index:3;width:44px;height:44px;border:none;background:transparent;border-radius:22px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
 .flagbtn.on{color:var(--err)}
 .flagbtn.on .ic{fill:currentColor}
