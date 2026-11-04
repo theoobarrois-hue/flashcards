@@ -352,8 +352,11 @@
     '@media (max-width:640px){h1{font-size:1.4rem}.face{font-size:1.05rem;min-height:250px;padding:34px 16px 20px 18px}.tag{left:18px}}'
   ].join('\n');
 
+  FC.MACROS_JSON = "{\"\\\\R\": \"\\\\mathbb{R}\", \"\\\\C\": \"\\\\mathbb{C}\", \"\\\\N\": \"\\\\mathbb{N}\", \"\\\\K\": \"\\\\mathbb{K}\", \"\\\\Z\": \"\\\\mathbb{Z}\", \"\\\\Sp\": \"\\\\operatorname{Sp}\", \"\\\\Ker\": \"\\\\operatorname{Ker}\", \"\\\\Im\": \"\\\\operatorname{Im}\", \"\\\\rg\": \"\\\\operatorname{rg}\", \"\\\\tr\": \"\\\\operatorname{tr}\", \"\\\\Vect\": \"\\\\operatorname{Vect}\", \"\\\\Cov\": \"\\\\operatorname{Cov}\", \"\\\\Id\": \"\\\\operatorname{Id}\", \"\\\\Mat\": \"\\\\operatorname{Mat}\", \"\\\\ch\": \"\\\\operatorname{ch}\", \"\\\\sh\": \"\\\\operatorname{sh}\", \"\\\\th\": \"\\\\operatorname{th}\", \"\\\\coth\": \"\\\\operatorname{coth}\", \"\\\\cotan\": \"\\\\operatorname{cotan}\", \"\\\\Argsh\": \"\\\\operatorname{Arg\\\\,sh}\", \"\\\\Argch\": \"\\\\operatorname{Arg\\\\,ch}\", \"\\\\Argth\": \"\\\\operatorname{Arg\\\\,th}\", \"\\\\Argcoth\": \"\\\\operatorname{Arg\\\\,coth}\", \"\\\\Arcsin\": \"\\\\operatorname{Arc\\\\,sin}\", \"\\\\Arccos\": \"\\\\operatorname{Arc\\\\,cos}\", \"\\\\Arctan\": \"\\\\operatorname{Arc\\\\,tan}\", \"\\\\Arccotan\": \"\\\\operatorname{Arc\\\\,cotan}\", \"\\\\dd\": \"\\\\mathrm{d}\", \"\\\\M\": \"\\\\mathcal{M}\", \"\\\\Imm\": \"\\\\operatorname{Im}\", \"\\\\GL\": \"\\\\operatorname{GL}\", \"\\\\SL\": \"\\\\operatorname{SL}\", \"\\\\diag\": \"\\\\operatorname{diag}\", \"\\\\Com\": \"\\\\operatorname{Com}\"}";
   function viewerScript() {
     var J = JSON.parse(document.getElementById('fc-data').textContent);
+    var MACROS = {};
+    try { MACROS = JSON.parse(document.getElementById('fc-macros').textContent); } catch (e) {}
     var cards = J.cards.map(function (c, i) {
       return { id: 'c' + i, f: c.f, b: c.b + (c.n ? '<div class="note">' + c.n + '</div>' : ''), star: !!c.star, ch: c.ch };
     });
@@ -399,7 +402,7 @@
     function typeset(el) {
       if (typeof window.renderMathInElement === 'function') {
         try {
-          window.renderMathInElement(el, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }], throwOnError: false });
+          window.renderMathInElement(el, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }], throwOnError: false, macros: MACROS });
         } catch (e) { /* le LaTeX brut reste affiché */ }
       }
     }
@@ -543,6 +546,7 @@
       '  <p class="hint">Clic sur la carte pour la retourner · ← → pour naviguer · Espace pour retourner</p>',
       '</div>',
       '<script type="application/json" id="fc-data">' + jsonForScript(p) + '<\/script>',
+      '<script type="application/json" id="fc-macros">' + FC.MACROS_JSON + '<\/script>',
       '<script>(' + viewerScript.toString() + ')();<\/script>',
       '</body>',
       '</html>'
@@ -576,6 +580,7 @@
       '<div class="box"><b>Pour restaurer :</b> ouvre l’application Flashcards, clique sur « Importer un HTML » et choisis ce fichier. Tes dossiers, tes jeux et tes erreurs reviennent tels quels.</div>',
       '<ul>' + rows.join('') + '</ul>',
       '<script type="application/json" id="fc-data">' + jsonForScript(p) + '<\/script>',
+      '<script type="application/json" id="fc-macros">' + FC.MACROS_JSON + '<\/script>',
       '</body></html>'
     ].join('\n');
   };

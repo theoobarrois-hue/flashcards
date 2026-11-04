@@ -205,7 +205,7 @@
   };
 
   /* ---------- Éditeur de carte ---------- */
-  var KATEX_MACROS = "{\"\\\\R\":\"\\\\mathbb{R}\",\"\\\\C\":\"\\\\mathbb{C}\",\"\\\\N\":\"\\\\mathbb{N}\",\"\\\\K\":\"\\\\mathbb{K}\",\"\\\\Z\":\"\\\\mathbb{Z}\",\"\\\\Sp\":\"\\\\operatorname{Sp}\",\"\\\\Ker\":\"\\\\operatorname{Ker}\",\"\\\\Im\":\"\\\\operatorname{Im}\",\"\\\\rg\":\"\\\\operatorname{rg}\",\"\\\\tr\":\"\\\\operatorname{tr}\",\"\\\\Vect\":\"\\\\operatorname{Vect}\",\"\\\\Cov\":\"\\\\operatorname{Cov}\",\"\\\\Id\":\"\\\\operatorname{Id}\",\"\\\\Mat\":\"\\\\operatorname{Mat}\",\"\\\\ch\":\"\\\\operatorname{ch}\",\"\\\\sh\":\"\\\\operatorname{sh}\",\"\\\\th\":\"\\\\operatorname{th}\",\"\\\\coth\":\"\\\\operatorname{coth}\",\"\\\\cotan\":\"\\\\operatorname{cotan}\",\"\\\\Argsh\":\"\\\\operatorname{Arg\\\\,sh}\",\"\\\\Argch\":\"\\\\operatorname{Arg\\\\,ch}\",\"\\\\Argth\":\"\\\\operatorname{Arg\\\\,th}\",\"\\\\Argcoth\":\"\\\\operatorname{Arg\\\\,coth}\",\"\\\\Arcsin\":\"\\\\operatorname{Arc\\\\,sin}\",\"\\\\Arccos\":\"\\\\operatorname{Arc\\\\,cos}\",\"\\\\Arctan\":\"\\\\operatorname{Arc\\\\,tan}\",\"\\\\Arccotan\":\"\\\\operatorname{Arc\\\\,cotan}\",\"\\\\dd\":\"\\\\mathrm{d}\"}";
+  var KATEX_MACROS = FC.MACROS_JSON;
   UI.typeset = function (el) {
     if (typeof window.renderMathInElement !== 'function' || !el) return;
     try {
