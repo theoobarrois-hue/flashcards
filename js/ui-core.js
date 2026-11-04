@@ -212,7 +212,7 @@
       window.renderMathInElement(el, {
         delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }],
         throwOnError: false,
-        macros: JSON.parse(KATEX_MACROS)
+        macros: FC.fixMacros(JSON.parse(KATEX_MACROS))
       });
     } catch (e) { /* le LaTeX brut reste affiché */ }
   };

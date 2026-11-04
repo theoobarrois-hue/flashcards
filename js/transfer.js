@@ -354,10 +354,30 @@
   ].join('\n');
 
   FC.MACROS_JSON = "{\"\\\\R\": \"\\\\mathbb{R}\", \"\\\\C\": \"\\\\mathbb{C}\", \"\\\\N\": \"\\\\mathbb{N}\", \"\\\\K\": \"\\\\mathbb{K}\", \"\\\\Z\": \"\\\\mathbb{Z}\", \"\\\\Sp\": \"\\\\operatorname{Sp}\", \"\\\\Ker\": \"\\\\operatorname{Ker}\", \"\\\\Im\": \"\\\\operatorname{Im}\", \"\\\\rg\": \"\\\\operatorname{rg}\", \"\\\\tr\": \"\\\\operatorname{tr}\", \"\\\\Vect\": \"\\\\operatorname{Vect}\", \"\\\\Cov\": \"\\\\operatorname{Cov}\", \"\\\\Id\": \"\\\\operatorname{Id}\", \"\\\\Mat\": \"\\\\operatorname{Mat}\", \"\\\\ch\": \"\\\\operatorname{ch}\", \"\\\\sh\": \"\\\\operatorname{sh}\", \"\\\\th\": \"\\\\operatorname{th}\", \"\\\\coth\": \"\\\\operatorname{coth}\", \"\\\\cotan\": \"\\\\operatorname{cotan}\", \"\\\\Argsh\": \"\\\\operatorname{Arg\\\\,sh}\", \"\\\\Argch\": \"\\\\operatorname{Arg\\\\,ch}\", \"\\\\Argth\": \"\\\\operatorname{Arg\\\\,th}\", \"\\\\Argcoth\": \"\\\\operatorname{Arg\\\\,coth}\", \"\\\\Arcsin\": \"\\\\operatorname{Arc\\\\,sin}\", \"\\\\Arccos\": \"\\\\operatorname{Arc\\\\,cos}\", \"\\\\Arctan\": \"\\\\operatorname{Arc\\\\,tan}\", \"\\\\Arccotan\": \"\\\\operatorname{Arc\\\\,cotan}\", \"\\\\dd\": \"\\\\mathrm{d}\", \"\\\\M\": \"\\\\mathcal{M}\", \"\\\\Imm\": \"\\\\operatorname{Im}\", \"\\\\GL\": \"\\\\operatorname{GL}\", \"\\\\SL\": \"\\\\operatorname{SL}\", \"\\\\diag\": \"\\\\operatorname{diag}\", \"\\\\Com\": \"\\\\operatorname{Com}\", \"\\\\neq\": \"\\\\mathrel{\\\\char\\\"2260}\", \"\\\\ne\": \"\\\\neq\"}";
+  /* Macros à fonction : \not sans "rlap" (mal rendu par Safari) */
+  FC.fixMacros = function (m) {
+    var map = {
+      '\\Leftarrow': '\\nLeftarrow', '\\Rightarrow': '\\nRightarrow', '\\Leftrightarrow': '\\nLeftrightarrow',
+      '\\iff': '\\nLeftrightarrow', '\\implies': '\\nRightarrow', '\\impliedby': '\\nLeftarrow',
+      '\\leftarrow': '\\nleftarrow', '\\rightarrow': '\\nrightarrow', '\\to': '\\nrightarrow',
+      '\\leftrightarrow': '\\nleftrightarrow', '=': '\\neq', '\\in': '\\notin', '\\equiv': '\\mathrel{\\char"2262}',
+      '\\subset': '\\mathrel{\\char"2284}', '\\ni': '\\mathrel{\\char"220C}'
+    };
+    var o = {};
+    for (var k in m) o[k] = m[k];
+    o['\\not'] = function (ctx) {
+      var tk = ctx.future();
+      if (tk && map[tk.text]) { ctx.popToken(); return map[tk.text]; }
+      return '\\html@mathml{\\mathrel{\\mathrlap\\@not}}{\\char"338}';
+    };
+    o['\\notin'] = '\\mathrel{\\char"2209}';
+    return o;
+  };
   function viewerScript() {
     var J = JSON.parse(document.getElementById('fc-data').textContent);
     var MACROS = {};
     try { MACROS = JSON.parse(document.getElementById('fc-macros').textContent); } catch (e) {}
+    if (window.FC_FIXMACROS) MACROS = window.FC_FIXMACROS(MACROS);
     var cards = J.cards.map(function (c, i) {
       return { id: 'c' + i, f: c.f, b: c.b + (c.n ? '<div class="note">' + c.n + '</div>' : ''), star: !!c.star, ch: c.ch };
     });
@@ -548,6 +568,7 @@
       '</div>',
       '<script type="application/json" id="fc-data">' + jsonForScript(p) + '<\/script>',
       '<script type="application/json" id="fc-macros">' + FC.MACROS_JSON + '<\/script>',
+      '<script>window.FC_FIXMACROS=' + FC.fixMacros.toString() + ';<\/script>',
       '<script>(' + viewerScript.toString() + ')();<\/script>',
       '</body>',
       '</html>'
