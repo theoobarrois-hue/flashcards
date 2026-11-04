@@ -1,5 +1,5 @@
 'use strict';
-const $=s=>document.querySelector(s), KEY='cap-prepa-v1', labels={todo:'Non tentée',good:'Réussie',bad:'À retravailler'};
+const $=s=>document.querySelector(s), KEY='cap-prepa-v1', NATIVE=!!(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.save), labels={todo:'Non tentée',good:'Réussie',bad:'À retravailler'};
 let state={version:1,chapters:[]},selected=null,subjectFilter='Tous',reviewOnly=false,questionFilter='all',editing=null,undo=null,toastTimer,quickAxis=1,pendingDelete=null,deletedChapter=null;
 const subjects=['Maths','Physique','Chimie','Français','Autre'];
 const isFrench=c=>c?.subject==='Français';
@@ -7,16 +7,17 @@ const units=c=>isFrench(c)?`${c.total/4} axes · ${c.total} arguments`:`${c.tota
 const statusLabels=c=>isFrench(c)?{todo:'Non travaillé',good:'Maîtrisé',bad:'À retravailler'}:labels;
 const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function warn(s){$('#storageWarning').hidden=false;$('#storageWarning').textContent=s;$('#saveState').textContent='Sauvegarde indisponible';}
-try{const raw=localStorage.getItem(KEY);if(raw)state=CP.validate(JSON.parse(raw));}catch(e){warn('La sauvegarde locale ne peut pas être chargée. Elle ne sera pas écrasée sans modification de ta part. Tu peux importer une sauvegarde JSON.');}
+try{const raw=NATIVE?window.capPrepaInitialData:localStorage.getItem(KEY);if(raw)state=CP.validate(JSON.parse(raw));}catch(e){warn('La sauvegarde locale ne peut pas être chargée. Elle ne sera pas écrasée sans modification de ta part. Tu peux importer une sauvegarde JSON.');}
 selected=state.chapters[0]?.id;
 function toast(s){$('#toast').textContent=s;$('#toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),4000);}
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(state));$('#saveState').textContent='Enregistré sur cet appareil';return true;}catch(e){warn('L’enregistrement sur cet appareil a échoué. Exporte une copie.');return false;}}
+function persist(){try{if(NATIVE){$('#saveState').textContent='Enregistrement…';window.webkit.messageHandlers.save.postMessage(JSON.stringify(state));}else{localStorage.setItem(KEY,JSON.stringify(state));$('#saveState').textContent='Enregistré sur cet appareil';}return true;}catch(e){warn('L’enregistrement sur cet appareil a échoué. Exporte une copie.');return false;}}
 function commit(message,quiet=false){const previous=selected,scroll=$('.questions')?.scrollTop||0;const saved=persist();render();if(previous===selected&&$('.questions'))$('.questions').scrollTop=scroll;if(!quiet||!saved)toast(message+(saved?'':' · sauvegarde locale impossible'));}
 function getChapter(){return state.chapters.find(c=>c.id===selected);}
 function bar(c){const n=CP.counts(c);return `<div class="bar" aria-label="${n.good} validés, ${n.bad} à retravailler, ${n.todo} non travaillés"><i style="width:${n.good/c.total*100}%"></i><i class="bad" style="width:${n.bad/c.total*100}%"></i></div>`;}
+function redoList(c){const idx=[];c.questions.forEach((s,i)=>{if(s==='bad')idx.push(i);});if(isFrench(c)){const ax=[...new Set(idx.map(i=>Math.floor(i/4)+1))];return (ax.length>1?'Axes ':'Axe ')+ax.slice(0,8).join(', ')+(ax.length>8?' …':'');}const nums=idx.map(i=>i+1);return (nums.length>1?'Questions ':'Question ')+nums.slice(0,10).join(', ')+(nums.length>10?` … +${nums.length-10}`:'');}
 function render(){const total=state.chapters.reduce((a,c)=>{const n=CP.counts(c);a.total+=c.total;for(const s of ['good','bad','todo'])a[s]+=n[s];return a;},{total:0,good:0,bad:0,todo:0});const pct=total.total?Math.round(100*total.good/total.total):0;
-$('#stats').innerHTML=[[pct+' %','Progression globale',`${total.good} / ${total.total} éléments validés`],[total.good,'Validés',''],[total.bad,'À retravailler',''],[total.todo,'Non travaillés','']].map(([v,l,n])=>`<article class="stat ${l==='Validés'?'stat-good':l==='À retravailler'?'stat-bad':''}"><div class="stat-label">${l}</div><div class="stat-value">${v}</div><div class="stat-note">${n}</div></article>`).join('');
-$('#navCount').textContent=total.bad;$('#allCount').textContent=state.chapters.length;$('#overall').textContent=`${total.good+total.bad} / ${total.total} éléments travaillés`;
+renderStats();
+$('#navCount').textContent=total.bad;$('#allCount').textContent=state.chapters.length;
 $('#allNav').classList.toggle('active',!reviewOnly&&subjectFilter==='Tous');$('#reviewNav').classList.toggle('active',reviewOnly);
 const view=reviewOnly?'À retravailler':subjectFilter==='Tous'?'Tous les chapitres':subjectFilter;
 $('#viewTitle').textContent=view;$('#breadcrumb').textContent='Entraînement / '+view;
@@ -29,12 +30,36 @@ const sort=$('#sort').value;
 visible.sort((a,b)=>sort==='review'?CP.counts(b).bad-CP.counts(a).bad||a.name.localeCompare(b.name,'fr',{numeric:true}):sort==='progress'?CP.counts(a).good/a.total-CP.counts(b).good/b.total||a.name.localeCompare(b.name,'fr',{numeric:true}):a.name.localeCompare(b.name,'fr',{numeric:true}));
 if(!visible.some(c=>c.id===selected))selected=visible[0]?.id;
 $('#chapterCount').textContent=visible.length;
-const card=c=>{const n=CP.counts(c);return `<button class="chapter ${selected===c.id?'selected':''}" data-id="${escapeHTML(c.id)}" aria-pressed="${selected===c.id}"><div class="card-title"><h3>${escapeHTML(c.name)}</h3><span aria-hidden="true">›</span></div><div class="progress-label"><span>${units(c)}</span><b>${Math.round(n.good/c.total*100)} %</b></div>${bar(c)}<div class="card-foot"><span class="good-text">✓ ${n.good}</span><span class="bad-text">↻ ${n.bad}</span><span>○ ${n.todo}</span></div></button>`;};
-$('#chapters').innerHTML=visible.length?(sort==='name'?subjects.map(subject=>{const group=visible.filter(c=>c.subject===subject);return group.length?`<section class="chapter-group"><h3 class="group-label">${subject}<span>${group.length}</span></h3>${group.map(card).join('')}</section>`:'';}).join(''):visible.map(c=>`<div class="sorted-chapter"><span class="sort-subject">${c.subject}</span>${card(c)}</div>`).join('')):`<div class="empty"><h3>${reviewOnly?'Aucun chapitre à retravailler':state.chapters.length?'Aucun résultat':'Aucun chapitre'}</h3>${state.chapters.length?'':'<button class="secondary" id="emptyExamples">Ajouter les exemples</button>'}</div>`;
+const card=c=>{const n=CP.counts(c);return `<button class="chapter ${selected===c.id?'selected':''}" data-id="${escapeHTML(c.id)}" aria-pressed="${selected===c.id}"><div class="card-title"><h3>${escapeHTML(c.name)}</h3><span aria-hidden="true">›</span></div><div class="progress-label"><span>${units(c)}</span><b>${Math.round(n.good/c.total*100)} %</b></div>${bar(c)}<div class="card-foot"><span class="good-text">✓ ${n.good}</span><span class="bad-text">↻ ${n.bad}</span><span>○ ${n.todo}</span></div>${reviewOnly&&n.bad?`<div class="redo">↻ ${redoList(c)}</div>`:''}</button>`;};
+$('#chapters').innerHTML=visible.length?(sort==='name'?subjects.map(subject=>{const group=visible.filter(c=>c.subject===subject);return group.length?`<section class="chapter-group"><h3 class="group-label">${subject}<span>${group.length}</span></h3>${group.map(card).join('')}</section>`:'';}).join(''):visible.map(c=>`<div class="sorted-chapter"><span class="sort-subject">${c.subject}</span>${card(c)}</div>`).join('')):`<div class="empty"><h3>${reviewOnly?'Aucun chapitre à retravailler':query?'Aucun résultat':subjectFilter!=='Tous'?'Aucun chapitre en '+subjectFilter:'Aucun chapitre'}</h3>${state.chapters.length?'':'<button class="secondary" id="emptyExamples">Ajouter les exemples</button>'}</div>`;
 $('#emptyExamples')?.addEventListener('click',examples);
 document.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{selected=b.dataset.id;quickAxis=1;questionFilter=reviewOnly?'bad':'all';render();if(window.matchMedia('(max-width: 760px)').matches)$('#detail').scrollIntoView({behavior:'smooth',block:'start'});});renderDetail();renderHome();}
+function sumOf(list){return list.reduce((a,c)=>{const n=CP.counts(c);a.total+=c.total;a.good+=n.good;a.bad+=n.bad;a.todo+=n.todo;return a;},{total:0,good:0,bad:0,todo:0});}
+const pctOf=t=>t.total?Math.round(100*t.good/t.total):0;
+const barOf=t=>t.total?`<div class="bar mini"><i style="width:${t.good/t.total*100}%"></i><i class="bad" style="width:${t.bad/t.total*100}%"></i></div>`:'<div class="bar mini"></div>';
+const plural=(n,w)=>`${n} ${w}${n>1?'s':''}`;
+function renderStats(){
+ const scoped=state.chapters.filter(c=>(subjectFilter==='Tous'||c.subject===subjectFilter)&&(!reviewOnly||CP.counts(c).bad>0)),t=sumOf(scoped),el=$('#stats'),empty=!scoped.length;
+ const tile=(cls,label,value,note,extra='')=>`<article class="stat ${cls}"><div class="stat-label">${label}</div><div class="stat-value">${value}</div>${extra}<div class="stat-note">${note}</div></article>`;
+ const french=subjectFilter==='Français'&&!reviewOnly,word=french?'arguments':subjectFilter==='Tous'||reviewOnly?'éléments':'questions';
+ $('#overall').textContent=`${t.good+t.bad} / ${t.total} ${word} travaillé${word==='questions'?'e':''}s`+(subjectFilter==='Tous'&&!reviewOnly?'':' · '+(reviewOnly?'à retravailler':subjectFilter));
+ if(reviewOnly){
+  el.className='stats';
+  el.innerHTML=tile('stat-bad','À retravailler',empty?'—':t.bad,empty?'':`${word} à refaire`)+tile('','Chapitres concernés',empty?'—':scoped.length,'')+tile('','Progression de ces chapitres',empty?'—':pctOf(t)+' %',empty?'':`${t.good} / ${t.total} validés`,barOf(t));
+ }else if(subjectFilter==='Tous'){
+  const g=sumOf(state.chapters);
+  el.className='stats overview';
+  el.innerHTML=tile('stat-main','Progression globale',state.chapters.length?pctOf(g)+' %':'—',state.chapters.length?`${g.good} / ${g.total} validés · ${g.bad} à retravailler`:'Aucun chapitre pour l’instant',barOf(g))+['Maths','Physique','Chimie','Français'].map(sub=>{const l=state.chapters.filter(c=>c.subject===sub),x=sumOf(l);return `<button class="stat stat-subject" data-stat-subject="${sub}"><div class="stat-label">${sub}</div><div class="stat-value">${l.length?pctOf(x)+' %':'—'}</div>${barOf(x)}<div class="stat-note">${l.length?plural(l.length,'chapitre')+(x.bad?` · ${x.bad} à refaire`:''):'Aucun chapitre'}</div></button>`;}).join('');
+  document.querySelectorAll('[data-stat-subject]').forEach(b=>b.onclick=()=>setView(b.dataset.statSubject));
+ }else{
+  el.className='stats';
+  el.innerHTML=tile('',`Progression · ${subjectFilter}`,empty?'—':pctOf(t)+' %',empty?'':`${t.good} / ${t.total} ${french?'arguments maîtrisés':'questions réussies'}`,barOf(t))+tile('stat-good',french?'Maîtrisés':'Réussies',empty?'—':t.good,'')+tile('stat-bad','À retravailler',empty?'—':t.bad,'')+tile('',french?'Non travaillés':'Non tentées',empty?'—':t.todo,'');
+ }
+}
 function renderDetail(){
- const c=getChapter();if(!c){$('#detail').innerHTML='<div class="empty"><h3>Aucun chapitre sélectionné</h3></div>';return;}
+ const c=getChapter();if(!c){const sub=subjectFilter!=='Tous'?subjectFilter:'',q=$('#search').value.trim();
+  $('#detail').innerHTML=q?'<div class="empty-state"><h3>Aucun résultat</h3><p>Aucun chapitre ne correspond à cette recherche.</p></div>':reviewOnly?'<div class="empty-state"><h3>Rien à retravailler</h3><p>Aucune question n’est marquée « à retravailler ». Dès que tu en signales, elles apparaissent ici, chapitre par chapitre.</p></div>':`<div class="empty-state"><h3>${sub?'Aucun chapitre en '+sub:'Commence ton suivi'}</h3><p>${sub==='Français'?'Ajoute un thème ou une œuvre : chaque axe compte 4 arguments.':'Ajoute un chapitre et son nombre de questions, puis note ce que tu as tenté.'}</p><button class="primary" id="emptyAdd">＋ Ajouter un chapitre${sub?' de '+sub:''}</button></div>`;
+  $('#emptyAdd')?.addEventListener('click',()=>openForm());return;}
  const n=CP.counts(c), french=isFrench(c), sl=statusLabels(c);quickAxis=Math.min(quickAxis,french?c.total/4:1);
  const cell=(s,i)=>`<button class="q ${s}" data-question="${i}" title="${french?`Axe ${Math.floor(i/4)+1}, argument ${i%4+1}`:`Question ${i+1}`} · ${sl[s]}" aria-label="${french?`Axe ${Math.floor(i/4)+1}, argument ${i%4+1}`:`Question ${i+1}`}, ${sl[s]}">${french?`<span class="arg-label">Argument</span>${i%4+1}`:i+1}<span class="q-mark" aria-hidden="true">${s==='good'?'✓':s==='bad'?'↻':''}</span></button>`;
  let grid='';
