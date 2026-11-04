@@ -296,6 +296,7 @@
   FC.tabsOf = function (set) {
     var tabs = [{ key: 'recap', title: set.recapTitle || 'Récap Ultra-Important', short: set.recapTitle || 'Récap' }];
     set.chapters.forEach(function (c) { if (!FC.isRecapCh(c)) tabs.push({ key: c.id, title: c.title, short: c.title }); });
+    tabs.push({ key: 'errors', title: 'Erreurs', short: 'Erreurs' });
     tabs.forEach(function (t) { t.n = FC.cardsOf(set, t.key).length; });
     return tabs;
   };

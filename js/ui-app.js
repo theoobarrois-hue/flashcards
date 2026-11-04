@@ -279,7 +279,12 @@
 
   function cardHTML(c, set) {
     var note = c.n ? '<div class="note">' + FC.safe(c.n) + '</div>' : '';
-    return '<div class="stack s2" aria-hidden="true"></div><div class="stack s1" aria-hidden="true"></div>' +
+    var nxt = '', ne = R && R.list[R.idx + 1];
+    if (ne) {
+      var ns = FC.set(ne.setId), nc = ns && FC.findCard(ns, ne.cardId);
+      if (nc) nxt = '<div class="card nxt" aria-hidden="true"><div class="inner"><div class="face front"><span class="tag q"><i></i>Question</span><div class="content">' + FC.safe(nc.f) + '</div></div></div></div>';
+    }
+    return '<div class="stack s2" aria-hidden="true"></div><div class="stack s1" aria-hidden="true"></div>' + nxt +
       '<div class="card' + (R.flipped ? ' flipped' : '') + '" id="card" data-act="flip" tabindex="0" role="button" aria-label="Retourner la carte"><div class="inner">' +
       '<div class="face front"><span class="tag q"><i></i>Question</span><div class="content">' + FC.safe(c.f) + '</div></div>' +
       '<div class="face back"><span class="tag a"><i></i>Réponse</span><div class="content">' + FC.safe(c.b) + note + '</div></div></div>' +
@@ -323,7 +328,8 @@
     }
     if (!cc) {
       var msg, cta = '';
-      if (R.tab === 'recap') msg = '<h2>Le Récap est vide</h2><p>Coche « Ultra-important » dans une carte pour la placer ici.</p>';
+      if (R.tab === 'errors') msg = '<h2>Aucune erreur dans ce jeu</h2><p>Glisse une carte vers la gauche pendant la révision pour la retrouver ici.</p>';
+      else if (R.tab === 'recap') msg = '<h2>Le Récap est vide</h2><p>Coche « Ultra-important » dans une carte pour la placer ici.</p>';
       else { msg = '<h2>Ce chapitre est vide</h2><p>Ajoute ta première carte.</p>'; cta = '<button type="button" class="btn primary" data-act="addCard">' + ic('plus', 15, 2.4) + 'Ajouter une carte</button>'; }
       host.innerHTML = '<div class="empty-card">' + msg + cta + '</div>';
       R.sig = '';
@@ -335,7 +341,7 @@
     }
     $$('.controls .cbtn').forEach(function (b) { b.disabled = false; });
     var c = cc.card, s = cc.set;
-    var sig = c.id + '|' + c.f + '|' + c.b + '|' + c.n;
+    var sig = c.id + '|' + c.f + '|' + c.b + '|' + c.n + '|' + (R.list[R.idx + 1] ? R.list[R.idx + 1].cardId : '');
     if (R.sig !== sig) {
       host.innerHTML = cardHTML(c, s);
       UI.typeset(host);
@@ -411,65 +417,91 @@
     if (no) no.style.opacity = p < 0 ? Math.min(1, -p * 1.2) : 0;
     if (t) t.style.background = p > 0 ? 'rgba(47,125,79,' + (0.2 * Math.min(1, p)).toFixed(3) + ')' : p < 0 ? 'rgba(196,85,63,' + (0.2 * Math.min(1, -p)).toFixed(3) + ')' : 'transparent';
   }
-  function commit(kind) {
+  function nextLayer(p) {
+    var nx = $('#cardHost .card.nxt');
+    if (!nx) return;
+    p = Math.max(0, Math.min(1, p));
+    nx.style.transform = 'scale(' + (0.955 + 0.045 * p).toFixed(4) + ') translateY(' + (10 * (1 - p)).toFixed(2) + 'px)';
+  }
+  function place(card, dx, dy) {
+    card.style.transform = 'translate3d(' + dx + 'px,' + dy + 'px,0) rotate(' + (dx / 16).toFixed(2) + 'deg)';
+  }
+  function commit(kind, dx0, dy0, vy) {
     if (!R || busy || R.done) return;
     var cc = cur(), card = $('#card');
     if (!cc || !card) return;
     busy = true;
-    var dir = kind === 'ok' ? 1 : -1, w = Math.max(window.innerWidth, 600);
+    var dir = kind === 'ok' ? 1 : -1, w = Math.max(window.innerWidth, 600) * 1.15;
+    var hasNext = !!$('#cardHost .card.nxt');
     card.classList.remove('dragging');
     card.classList.add('leaving');
     hints(card, dir);
-    card.style.transform = 'translateX(' + (dir * w) + 'px) rotate(' + (dir * 22) + 'deg)';
+    nextLayer(1);
+    var nx = $('#cardHost .card.nxt');
+    if (nx) nx.style.transition = 'transform .26s ease-out';
+    var ty = (dy0 || 0) + (vy || 0) * 200;
+    card.style.transform = 'translate3d(' + (dir * w) + 'px,' + ty.toFixed(0) + 'px,0) rotate(' + (dir * 26) + 'deg)';
     card.style.opacity = '0';
     setTimeout(function () {
       busy = false;
       if (!R || !FC.findCard(cc.set, cc.card.id)) return;
       FC.setError(cc.set.id, cc.card.id, kind === 'no');
       if (kind === 'ok') R.okN = (R.okN || 0) + 1; else R.noN = (R.noN || 0) + 1;
-      R.flipped = false; R.anim = true; R.sig = '';
+      R.flipped = false; R.anim = !hasNext; R.sig = '';
       if (R.idx >= R.list.length - 1) R.done = true; else R.idx++;
       paintCard();
-    }, 270);
+    }, 260);
   }
   function dragBind() {
     document.addEventListener('click', function (e) {
       if (noClick) { e.stopPropagation(); e.preventDefault(); }
     }, true);
+    var raf = 0;
+    function frame() {
+      raf = 0;
+      if (!D || !D.drag) return;
+      place(D.card, D.dx, D.dy);
+      var p = Math.max(-1, Math.min(1, D.dx / 110));
+      hints(D.card, p);
+      nextLayer(Math.hypot(D.dx, D.dy) / 150);
+    }
     document.addEventListener('pointerdown', function (e) {
       if (!R || busy || R.done) return;
       var card = e.target.closest && e.target.closest('#card');
       if (!card || e.target.closest('a,button')) return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
-      D = { id: e.pointerId, x: e.clientX, y: e.clientY, t: Date.now(), dx: 0, drag: false, card: card, lx: e.clientX, lt: Date.now(), v: 0 };
+      D = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0, drag: false, card: card, lx: e.clientX, ly: e.clientY, lt: performance.now(), vx: 0, vy: 0 };
     });
     document.addEventListener('pointermove', function (e) {
       if (!D || e.pointerId !== D.id) return;
       var dx = e.clientX - D.x, dy = e.clientY - D.y;
       if (!D.drag) {
-        if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.2) {
-          D.drag = true;
-          D.card.classList.add('dragging');
-          try { D.card.setPointerCapture(e.pointerId); } catch (x) { /* ok */ }
-        } else if (Math.abs(dy) > 14) { D = null; return; }
-        else return;
+        if (Math.hypot(dx, dy) < 6) return;
+        D.drag = true;
+        D.card.classList.add('dragging');
+        var nx = $('#cardHost .card.nxt'); if (nx) nx.style.transition = 'none';
+        try { D.card.setPointerCapture(e.pointerId); } catch (x) { /* ok */ }
       }
-      var now = Date.now();
-      if (now - D.lt > 0) D.v = (e.clientX - D.lx) / (now - D.lt);
-      D.lx = e.clientX; D.lt = now; D.dx = dx;
-      D.card.style.transform = 'translateX(' + dx + 'px) translateY(' + (dy * 0.12).toFixed(1) + 'px) rotate(' + (dx / 22).toFixed(2) + 'deg)';
-      hints(D.card, Math.max(-1, Math.min(1, dx / 110)));
+      var now = performance.now(), dt = now - D.lt;
+      if (dt > 0) { D.vx = 0.7 * D.vx + 0.3 * ((e.clientX - D.lx) / dt); D.vy = 0.7 * D.vy + 0.3 * ((e.clientY - D.ly) / dt); }
+      D.lx = e.clientX; D.ly = e.clientY; D.lt = now; D.dx = dx; D.dy = dy;
+      if (!raf) raf = requestAnimationFrame(frame);
+      if (e.cancelable) e.preventDefault();
     });
     function end(e) {
       if (!D || e.pointerId !== D.id) return;
       var d = D; D = null;
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
       if (!d.drag) return;
       noClick = true; setTimeout(function () { noClick = false; }, 120);
-      if (Math.abs(d.dx) > 110 || (Math.abs(d.dx) > 45 && Math.abs(d.v) > 0.55 && (d.v > 0) === (d.dx > 0))) commit(d.dx > 0 ? 'ok' : 'no');
+      var fling = Math.abs(d.vx) > 0.55 && Math.abs(d.dx) > 40 && (d.vx > 0) === (d.dx > 0);
+      if (Math.abs(d.dx) > 100 || fling) commit(d.dx > 0 ? 'ok' : 'no', d.dx, d.dy, d.vy);
       else {
         d.card.classList.remove('dragging');
         d.card.style.transform = '';
         hints(d.card, 0);
+        var nx = $('#cardHost .card.nxt');
+        if (nx) { nx.style.transition = ''; nx.style.transform = ''; }
       }
     }
     document.addEventListener('pointerup', end);
@@ -770,7 +802,7 @@
     }
   }
 
-  FC.VERSION = 'v18';
+  FC.VERSION = 'v19';
   function refreshApp() {
     var done = function () { location.reload(); };
     var p = Promise.resolve();
@@ -815,6 +847,7 @@
     function renameTab(btn) {
       if (!R || R.kind !== 'set' || !btn) return;
       var key = btn.dataset.tab, s = FC.set(R.setId);
+      if (key === 'errors') return;
       if (!s) return;
       var tabs = FC.tabsOf(s), t = tabs.filter(function (x) { return x.key === key; })[0];
       if (!t) return;
