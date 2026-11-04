@@ -519,11 +519,20 @@
         if (!ex) { ex = { id: FC.uid(), title: pc.title, o: FC.ord() }; set.chapters.push(ex); }
         return ex.id;
       });
+      /* Les nouvelles cartes sont insérées à leur place (après la carte qui les précède dans le fichier),
+         et les cartes « Récap seulement » rejoignent le chapitre de leur voisine au lieu d'aller à la fin. */
+      var prev = null;
       p.cards.forEach(function (c) {
         var k = key(c);
-        if (have[k]) { skipped++; if (c.star) have[k].star = true; return; }
-        var nc = { id: FC.uid(), ch: chMap[c.ch], f: c.f, b: c.b, n: c.n, star: c.star, o: FC.ord() };
-        set.cards.push(nc); have[k] = nc; added++;
+        if (have[k]) { skipped++; if (c.star) have[k].star = true; prev = have[k]; return; }
+        var isRc = FC.isRecapCh(p.chapters[c.ch]);
+        var chId = (isRc && prev) ? prev.ch : chMap[c.ch];
+        var nc = { id: FC.uid(), ch: chId, f: c.f, b: c.b, n: c.n, star: isRc ? true : c.star, o: FC.ord() };
+        var at = prev ? set.cards.indexOf(prev) : -1;
+        if (prev && prev.ch === chId && at >= 0) set.cards.splice(at + 1, 0, nc);
+        else if (isRc && prev && at >= 0) set.cards.splice(at + 1, 0, nc);
+        else set.cards.push(nc);
+        have[k] = nc; added++; prev = nc;
       });
       p.errors.forEach(function (i) {
         var ex = have[key(p.cards[i])];

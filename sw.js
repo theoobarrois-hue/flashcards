@@ -1,5 +1,5 @@
 /* Flashcards — service worker : tout est gardé sur l'appareil, l'appli marche hors ligne */
-const CACHE = 'flashcards-eb2379ad43';
+const CACHE = 'flashcards-5e1624b60e';
 const ASSETS = [
   "./",
   "LISEZMOI.txt",
