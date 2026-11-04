@@ -89,7 +89,7 @@
 
   /* ---------- méta locale : { uid, cursor, init, last, m: { id: {ts,h,d,dirty} } } ---------- */
   function meta() { var m = lsGet(META_KEY); if (!m || typeof m !== 'object' || !m.m) m = { uid: '', cursor: 0, init: 0, last: 0, m: {} }; return m; }
-  function pack(c) { var has = c.info && Object.keys(c.info).length; return { name: c.name, subject: c.subject, total: c.total, q: c.questions.map(function (s) { return CODE[s] || 't'; }).join(''), t: Number.isInteger(c.touched) ? c.touched : undefined, i: has ? c.info : undefined }; }
+  function pack(c) { var has = c.info && Object.keys(c.info).length; return { name: c.name, subject: c.subject, total: c.total, q: c.questions.map(function (s) { return CODE[s] || 't'; }).join(''), t: Number.isInteger(c.touched) ? c.touched : undefined, i: has ? c.info : undefined, g: c.group || undefined, p: c.pinned ? 1 : undefined, a: c.archived ? 1 : undefined }; }
   function afterLogin() {
     var u = S.user(), m = meta();
     if (u && m.uid !== u.id) m = { uid: u.id, cursor: 0, init: 0, last: 0, m: {} };
@@ -111,7 +111,7 @@
     if (d.subject === 'Français' && d.total % 4) return null;
     var qs = d.q.split('').map(function (ch) { return DECODE[ch]; });
     if (qs.indexOf(undefined) >= 0) return null;
-    var out = { id: id, name: d.name, subject: d.subject, total: d.total, questions: qs, info: CP.cleanInfo(d.i, d.total) }; if (Number.isInteger(d.t)) out.touched = d.t; return out;
+    var out = { id: id, name: d.name, subject: d.subject, total: d.total, questions: qs, info: CP.cleanInfo(d.i, d.total) }; if (Number.isInteger(d.t)) out.touched = d.t; if (typeof d.g === 'string' && d.g) out.group = d.g.slice(0, 40); if (d.p) out.pinned = true; if (d.a) out.archived = true; return out;
   }
   function applyRemote(m, rows) {
     var changed = false;

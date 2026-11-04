@@ -12,7 +12,7 @@
 
  /* ---------- calcul des révisions ---------- */
  function dueOf(c,i){const s=c.questions[i];if(s==='todo')return null;const e=c.info&&c.info[i];let d=e&&e.due;if(d===undefined&&s==='bad')d=today();return d===undefined?null:d;}
- function allScheduled(){const out=[];for(const c of state.chapters)c.questions.forEach((s,i)=>{const d=dueOf(c,i);if(d!==null)out.push({c,i,s,e:(c.info&&c.info[i])||{},due:d});});return out;}
+ function allScheduled(){const out=[];for(const c of live())c.questions.forEach((s,i)=>{const d=dueOf(c,i);if(d!==null)out.push({c,i,s,e:(c.info&&c.info[i])||{},due:d});});return out;}
  const dueItems=()=>{const t=today();return allScheduled().filter(x=>x.due<=t).sort((a,b)=>a.due-b.due||a.c.name.localeCompare(b.c.name,'fr')||a.i-b.i);};
 
  function review(c,i,ok){
@@ -59,12 +59,15 @@
  renderDetail=function(){baseDetail.apply(this,arguments);errorList();};
 
  /* ---------- rendu global ---------- */
- function scopeList(){return state.chapters.filter(c=>subjectFilter==='Tous'||c.subject===subjectFilter);}
+ function scopeList(){return live().filter(c=>(subjectFilter==='Tous'||c.subject===subjectFilter)&&(!groupFilter||c.group===groupFilter));}
  function trainRender(){
   const t=today(),items=dueItems();
   q('#dueCount').textContent=items.length;
+  const md=q('#mobileDue');if(md){md.hidden=!items.length;md.textContent=items.length>99?'99+':items.length;}
+  q('#mobileStudy').classList.toggle('on',!dueMode);q('#mobileReview').classList.toggle('on',dueMode);
+  const sub=q('#viewSub');if(sub){if(dueMode)sub.textContent='Les questions reviennent à J+3, puis J+7 et J+21 une fois réussies.';else{const sc=scopeList().filter(c=>!reviewOnly||CP.counts(c).bad>0),x=sumOf(sc);sub.textContent=sc.length?`${plural(sc.length,'chapitre')} · ${x.total} ${subjectFilter==='Français'?'arguments':subjectFilter==='Tous'?'éléments':'questions'} · ${pctOf(x)} % validés`:'Aucun chapitre pour l’instant';}}
   const hd=q('#homeDue');if(hd){hd.hidden=!items.length;hd.textContent=`${items.length} question${items.length>1?'s':''} à revoir aujourd’hui ↗`;}
-  q('#dueNav').classList.toggle('active',dueMode);q('#dueNav').setAttribute('aria-pressed',dueMode);
+  q('#dueNav').classList.toggle('active',dueMode);q('#dueNav').classList.toggle('zero',!items.length);q('#dueNav').setAttribute('aria-pressed',dueMode);
   q('#duePanel').hidden=!dueMode;q('.workspace').hidden=dueMode;
   q('#stale').hidden=true;q('#causes').hidden=true;
   if(dueMode){
