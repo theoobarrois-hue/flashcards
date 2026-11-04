@@ -346,7 +346,7 @@
       host.innerHTML = cardHTML(c, s);
       UI.typeset(host);
       R.sig = sig;
-      if (R.anim) { var ce = $('#card'); if (ce) ce.classList.add('enter'); }
+      if (R.anim) { var ce = $('#card'); if (ce) { ce.classList.add('enter'); ce.addEventListener('animationend', function () { ce.classList.remove('enter'); }, { once: true }); } }
     }
     R.anim = false;
     $('#counter').textContent = 'Carte ' + (R.idx + 1) + ' sur ' + n;
@@ -802,7 +802,7 @@
     }
   }
 
-  FC.VERSION = 'v19';
+  FC.VERSION = 'v20';
   function refreshApp() {
     var done = function () { location.reload(); };
     var p = Promise.resolve();
