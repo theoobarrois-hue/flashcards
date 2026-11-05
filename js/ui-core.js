@@ -210,6 +210,31 @@
   UI.mathml = function () {
     try { return localStorage.getItem('fc-mathml') === '1'; } catch (e) { return false; }
   };
+  UI.webkit = function () {
+    try { var o = localStorage.getItem('fc-fixfrac'); if (o === '0') return false; if (o === '1') return true; } catch (e) {}
+    var ua = navigator.userAgent;
+    return /AppleWebKit/.test(ua) && !/Chrome|Chromium|CriOS|Edg|Android/.test(ua);
+  };
+  /* Safari : on reconstruit chaque fraction (numérateur / barre / dénominateur) hors du tableau KaTeX */
+  UI.fixFractions = function (root) {
+    var list = [].slice.call(root.querySelectorAll('.katex .mfrac')).reverse();
+    list.forEach(function (f) {
+      try {
+        var vl = f.querySelector('.vlist');
+        if (!vl || vl.children.length !== 3 || !vl.children[1].querySelector('.frac-line')) return;
+        function body(sp) { var k = [].slice.call(sp.children).filter(function (c) { return !c.classList.contains('pstrut'); }); return k[0]; }
+        var den = body(vl.children[0]), num = body(vl.children[2]);
+        if (!den || !num) return;
+        var w = document.createElement('span');
+        w.className = 'fcx';
+        var a = document.createElement('span'); a.className = 'fn'; a.appendChild(num);
+        var b = document.createElement('span'); b.className = 'fb';
+        var c = document.createElement('span'); c.className = 'fd'; c.appendChild(den);
+        w.appendChild(a); w.appendChild(b); w.appendChild(c);
+        f.parentNode.replaceChild(w, f);
+      } catch (e) { /* on garde la version KaTeX */ }
+    });
+  };
   UI.typeset = function (el) {
     if (typeof window.renderMathInElement !== 'function' || !el) return;
     try {
@@ -219,6 +244,7 @@
         output: UI.mathml() ? 'mathml' : 'htmlAndMathml',
         macros: FC.fixMacros(JSON.parse(KATEX_MACROS))
       });
+      if (UI.webkit()) UI.fixFractions(el);
     } catch (e) { /* le LaTeX brut reste affiché */ }
   };
   UI.fmt = function (html) {
