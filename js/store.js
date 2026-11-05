@@ -269,22 +269,36 @@
     if (!s) return;
     var cur = FC.srsOf(s);
     cfg = cfg || {};
-    ['on', 'mode', 'steps', 'every', 'newPerDay'].forEach(function (k) { if (k in cfg) cur[k] = cfg[k]; });
-    cur.nd = (s.srs && s.srs.nd) || 0; cur.nn = (s.srs && s.srs.nn) || 0;
+    ['on', 'mode', 'steps', 'every', 'newPerDay', 'chs'].forEach(function (k) { if (k in cfg) cur[k] = cfg[k]; });
+    cur.nd = (s.srs && s.srs.nd) || 0; cur.nn = (s.srs && s.srs.nn) || 0; if (s.srs && s.srs.nm) cur.nm = s.srs.nm;
+    if (!cur.chs) delete cur.chs;
     s.srs = cur;
     touch();
   };
-  FC.dueEntries = function (set) {
+  /* Chapitres suivis : cfg.chs = liste d'ids (absente = tous les chapitres du jeu) */
+  function tracked(cfg, c) { return !cfg.chs || cfg.chs.indexOf(c.ch) >= 0; }
+  FC.dueEntries = function (set, chId) {
     if (!set || !set.srs || !set.srs.on) return [];
     var cfg = FC.srsOf(set), t = FC.today(), rid = recapIdOf(set), rev = [], nw = [];
     set.cards.forEach(function (c) {
       if (rid && c.ch === rid) return;
+      if (!tracked(cfg, c)) return;
       if (c.due === undefined || c.due === null) nw.push(c);
       else if (c.due <= t) rev.push(c);
     });
     rev.sort(function (a, b) { return a.due - b.due; });
-    var budget = cfg.newPerDay > 0 ? Math.max(0, cfg.newPerDay - (cfg.nd === t ? (cfg.nn || 0) : 0)) : nw.length;
-    return rev.concat(nw.slice(0, budget)).map(function (c) { return { setId: set.id, cardId: c.id }; });
+    /* budget de nouvelles cartes par jour : par chapitre (chaque chapitre suivi a sa propre session) */
+    var used = cfg.nd === t ? (cfg.nm || {}) : {}, cnt = {}, picked = [];
+    nw.forEach(function (c) {
+      var k = c.ch || '_', u = used[k] || 0;
+      if (cfg.newPerDay > 0 && u + (cnt[k] || 0) >= cfg.newPerDay) return;
+      cnt[k] = (cnt[k] || 0) + 1; picked.push(c);
+    });
+    return rev.concat(picked).filter(function (c) { return !chId || c.ch === chId; }).map(function (c) { return { setId: set.id, cardId: c.id }; });
+  };
+  FC.srsChapters = function (set) {
+    var rid = recapIdOf(set), cfg = FC.srsOf(set);
+    return set.chapters.filter(function (c) { return !(rid && c.id === rid) && (!cfg.chs || cfg.chs.indexOf(c.id) >= 0); });
   };
   FC.errorEntries = function (set) {
     var rid = recapIdOf(set), out = [];
@@ -293,7 +307,8 @@
   };
   FC.nextDue = function (set) {
     var t = FC.today(), best = null, rid = recapIdOf(set);
-    set.cards.forEach(function (c) { if ((rid && c.ch === rid) || c.due == null || c.due <= t) return; if (best === null || c.due < best) best = c.due; });
+    var cfgN = FC.srsOf(set);
+    set.cards.forEach(function (c) { if ((rid && c.ch === rid) || !tracked(cfgN, c) || c.due == null || c.due <= t) return; if (best === null || c.due < best) best = c.due; });
     return best === null ? null : best - t;
   };
   FC.dueTotal = function () {
@@ -307,7 +322,7 @@
     var cfg = FC.srsOf(s), t = FC.today();
     var isNew = c.due === undefined || c.due === null, due = isNew || c.due <= t;
     if (ok && !due) return;
-    if (isNew) { if (s.srs.nd !== t) { s.srs.nd = t; s.srs.nn = 0; } s.srs.nn = (s.srs.nn || 0) + 1; }
+    if (isNew) { if (s.srs.nd !== t) { s.srs.nd = t; s.srs.nn = 0; s.srs.nm = {}; } s.srs.nn = (s.srs.nn || 0) + 1; s.srs.nm = s.srs.nm || {}; s.srs.nm[c.ch || '_'] = (s.srs.nm[c.ch || '_'] || 0) + 1; }
     var lv = c.lv || 0;
     if (!ok) { c.lv = 0; c.due = t + 1; }
     else if (cfg.mode === 'fixed') { c.lv = lv + 1; c.due = t + Math.max(1, cfg.every | 0); }

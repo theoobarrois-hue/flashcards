@@ -806,9 +806,10 @@
     groups.forEach(function (gr) {
       if (p[0] === 'f' && gr.id !== p[1]) return;
       gr.sets.forEach(function (s) {
-        if (p[0] === 's' && s.id !== p[1]) return;
-        list = list.concat(FC.dueEntries(s));
+        if ((p[0] === 's' || p[0] === 'c') && s.id !== p[1]) return;
+        list = list.concat(FC.dueEntries(s, p[0] === 'c' ? p[2] : null));
         if (p[0] === 's') { title = s.title; crumb = gr.name; }
+        if (p[0] === 'c') { var cc = s.chapters.filter(function (x) { return x.id === p[2]; })[0]; title = cc ? cc.title : s.title; crumb = s.title; }
       });
       if (p[0] === 'f') { title = gr.name; crumb = 'À réviser'; }
     });
@@ -835,6 +836,15 @@
           '<span class="dm">' + esc((sub ? sub + ' · ' : '') + meta) + ' · ' + esc(rhythm) + '</span></button>' +
           (s.__e ? '<button type="button" class="errpill" data-act="dueRun" data-key="e:' + s.id + '" aria-label="Refaire les erreurs">' + s.__e + ' à refaire</button>' : '') +
           '<button type="button" class="kebab flat" data-act="srs" data-id="' + s.id + '" aria-label="Réglages du suivi">' + ic('gear', 16) + '</button></div>';
+        var chs = FC.srsChapters(s);
+        if (chs.length > 1) {
+          var due = FC.dueEntries(s), per = {};
+          due.forEach(function (en) { var cd = FC.findCard(s, en.cardId); if (cd) per[cd.ch] = (per[cd.ch] || 0) + 1; });
+          chs.forEach(function (ch) {
+            var n = per[ch.id] || 0;
+            h += '<div class="drow sub"><button type="button" class="drow-main" data-act="dueRun" data-key="c:' + s.id + ':' + ch.id + '"' + (n ? '' : ' disabled') + '><span class="dt">' + esc(ch.title) + '</span><span class="dm">' + (n ? FC.plural(n, 'carte') + ' à réviser' : 'à jour') + '</span></button></div>';
+          });
+        }
       });
       h += '</div></section>';
     });
@@ -844,21 +854,27 @@
     var s = FC.set(setId);
     if (!s) return;
     var c = FC.srsOf(s);
+    var realCh = s.chapters.filter(function (x) { return !FC.isRecapCh(x); });
+    var chBody = realCh.length > 1 ? '<div class="lbl">Chapitres suivis</div><div class="radios" id="srChs">' + realCh.map(function (x) {
+      return '<label><input type="checkbox" class="srch" value="' + x.id + '"' + (!c.chs || c.chs.indexOf(x.id) >= 0 ? ' checked' : '') + '><span><b>' + esc(x.title) + '</b></span></label>';
+    }).join('') + '</div><p class="hint">Chaque chapitre suivi apparaît comme sa propre session dans « À réviser ».</p>' : '';
     var body = '<label class="chk"><input type="checkbox" id="srOn"' + (c.on ? ' checked' : '') + '><span>Suivre ce jeu <em>(rappels espacés)</em></span></label>' +
       '<div class="lbl">Rythme</div><div class="radios">' +
       '<label><input type="radio" name="srm" value="prog"' + (c.mode !== 'fixed' ? ' checked' : '') + '><span><b>Progressif</b><em>chaque réussite espace davantage la carte</em></span></label>' +
       '<label><input type="radio" name="srm" value="fixed"' + (c.mode === 'fixed' ? ' checked' : '') + '><span><b>Fixe</b><em>la carte revient tous les N jours (citations, vocabulaire…)</em></span></label></div>' +
       '<label class="field"><span>Intervalles progressifs (jours, séparés par des virgules)</span><input type="text" id="srSteps" value="' + esc(c.steps.join(', ')) + '" autocomplete="off"></label>' +
       '<label class="field"><span>Mode fixe : revient tous les (jours)</span><input type="number" id="srEvery" min="1" value="' + c.every + '"></label>' +
-      '<label class="field"><span>Nouvelles cartes par jour (0 = toutes)</span><input type="number" id="srNew" min="0" value="' + c.newPerDay + '"></label>' +
-      '<p class="hint">Glisser à droite = je connais, à gauche = erreur (la carte revient demain).</p>';
+      '<label class="field"><span>Nouvelles cartes par jour et par chapitre (0 = toutes)</span><input type="number" id="srNew" min="0" value="' + c.newPerDay + '"></label>' +
+      chBody + '<p class="hint">Glisser à droite = je connais, à gauche = erreur (la carte revient demain).</p>';
     UI.modal({
       title: 'Suivi de « ' + s.title + ' »', wide: true, noMobileFocus: true, body: body,
       buttons: [{ id: 'cancel', label: 'Annuler' }, { id: 'ok', label: 'Enregistrer', kind: 'primary' }],
       collect: function (el) {
         var steps = String(UI.$('#srSteps', el).value).split(/[^0-9]+/).map(function (x) { return parseInt(x, 10); }).filter(function (x) { return x > 0; });
         var m = UI.$('input[name=srm]:checked', el);
-        return { on: UI.$('#srOn', el).checked, mode: m ? m.value : 'prog', steps: steps.length ? steps : [1, 3, 7, 15, 30], every: Math.max(1, parseInt(UI.$('#srEvery', el).value, 10) || 10), newPerDay: Math.max(0, parseInt(UI.$('#srNew', el).value, 10) || 0) };
+        var boxes = [].slice.call(el.querySelectorAll('.srch')), sel = boxes.filter(function (b) { return b.checked; }).map(function (b) { return b.value; });
+        var chs = boxes.length && sel.length && sel.length < boxes.length ? sel : null;
+        return { chs: chs, on: UI.$('#srOn', el).checked, mode: m ? m.value : 'prog', steps: steps.length ? steps : [1, 3, 7, 15, 30], every: Math.max(1, parseInt(UI.$('#srEvery', el).value, 10) || 10), newPerDay: Math.max(0, parseInt(UI.$('#srNew', el).value, 10) || 0) };
       }
     }).then(function (r) {
       if (!r || typeof r !== 'object') return;
@@ -934,7 +950,7 @@
     }
   }
 
-  FC.VERSION = 'v32';
+  FC.VERSION = 'v33';
   function refreshApp() {
     var done = function () { location.reload(); };
     var p = Promise.resolve();

@@ -428,3 +428,6 @@ code{background:#f1e9d7;padding:1px 5px;border-radius:5px;font-size:.92em}
 .katex .fcx>.fn{padding-bottom:.08em;white-space:nowrap;line-height:1.05}
 .katex .fcx>.fd{padding-top:.08em;white-space:nowrap;line-height:1.05}
 .katex .fcx>.fb{justify-self:stretch;height:0;border-bottom:.045em solid currentColor;min-height:1px;box-sizing:content-box}
+
+.drow.sub{margin-left:22px;border-radius:12px;background:transparent;border-style:dashed}
+.drow.sub .drow-main{padding:8px 14px}.drow.sub .dt{font-size:14.5px}
