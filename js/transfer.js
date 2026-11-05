@@ -391,6 +391,7 @@
       return '\\html@mathml{\\mathrel{\\mathrlap\\@not}}{\\char"338}';
     };
     o['\\notin'] = '\\mathrel{\\char"2209}';
+    o['\\frac'] = '\\dfrac'; /* fractions en ligne aérées (barre/exposant collés sur Safari) */
     return o;
   };
   function viewerScript() {
