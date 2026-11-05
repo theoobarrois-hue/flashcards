@@ -170,6 +170,59 @@
         return m.replace(/&(?!(?:[a-zA-Z]+|#\d+|#x[0-9a-fA-F]+);)/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       });
     }
+    /* Cartes générées par le script du fichier (ex. {{M:aldehyde}} -> dessin SVG) : on utilise sa propre fonction de rendu,
+       puis on fige les styles de ses classes CSS en style="" pour que la carte s'affiche pareil dans l'appli. */
+    function makePrep(scripts) {
+      var ex = null, names = [];
+      scripts.forEach(function (sc) {
+        var re = /function\s+([A-Za-z_$][\w$]*)\s*\(/g, m, t = sc.textContent || '';
+        while ((m = re.exec(t))) names.push(m[1]);
+      });
+      names.sort(function (a, b) { return (/expand|render|fmt|tpl|html|resolve|build/i.test(b) ? 1 : 0) - (/expand|render|fmt|tpl|html|resolve|build/i.test(a) ? 1 : 0); });
+      function tryFn(nm, sample) {
+        var f = window[nm];
+        if (typeof f !== 'function' || f.length < 1) return false;
+        try { var r = f(sample); return typeof r === 'string' && r !== sample && r.indexOf('{{') < 0 && r.length > sample.length; } catch (e) { return false; }
+      }
+      function find(sample) { if (ex) return ex; for (var i = 0; i < names.length; i++) if (tryFn(names[i], sample)) { ex = window[names[i]]; return ex; } return null; }
+      var PROPS = ['display', 'flex-direction', 'flex-wrap', 'justify-content', 'align-items', 'gap', 'color', 'font-size', 'font-weight', 'font-style', 'line-height', 'letter-spacing', 'text-align', 'text-transform', 'margin-top', 'margin-bottom', 'margin-left', 'margin-right', 'padding-top', 'padding-bottom', 'padding-left', 'padding-right', 'background-color', 'border-radius', 'max-width', 'min-width', 'overflow-wrap'];
+      var ref = {};
+      function refStyle(tag, host) {
+        if (ref[tag]) return ref[tag];
+        var e = document.createElement(tag); host.appendChild(e);
+        var cs = getComputedStyle(e), o = {};
+        PROPS.forEach(function (p) { o[p] = cs.getPropertyValue(p); });
+        host.removeChild(e); return (ref[tag] = o);
+      }
+      function inline(html) {
+        if (!/class\s*=/.test(html)) return html;
+        var host = document.createElement('div');
+        host.style.cssText = 'position:absolute;left:-9999px;top:0;width:700px';
+        document.body.appendChild(host);
+        try {
+          host.innerHTML = html;
+          var multi = host.querySelectorAll('.cell').length > 1;
+          var all = host.querySelectorAll('*');
+          for (var i = 0; i < all.length; i++) {
+            var el = all[i];
+            if (el.closest('svg') && el.tagName.toLowerCase() !== 'svg') continue;
+            if (!el.getAttribute('class') && el.tagName.toLowerCase() !== 'svg') continue;
+            var tag = el.tagName.toLowerCase();
+            if (tag === 'svg') { el.setAttribute('style', 'max-width:100%;max-height:' + (multi ? '15vh' : '34vh') + ';width:auto;height:auto;color:inherit;display:block;margin:0 auto'); continue; }
+            var cs = getComputedStyle(el), r = refStyle(tag, host), st = '';
+            PROPS.forEach(function (p) { var v = cs.getPropertyValue(p); if (v && v !== r[p]) st += p + ':' + v + ';'; });
+            if (st) el.setAttribute('style', (el.getAttribute('style') || '') + ';' + st);
+            el.removeAttribute('class');
+          }
+          return host.innerHTML;
+        } catch (e) { return html; } finally { document.body.removeChild(host); }
+      }
+      return function (s) {
+        s = String(s == null ? '' : s);
+        if (s.indexOf('{{') >= 0) { var f = find(s); if (f) { try { s = f(s); } catch (e) { /* rien */ } } }
+        return inline(s);
+      };
+    }
     function tryGeneric() {
       var scripts = [].slice.call(document.scripts).filter(function (s) { return !s.hasAttribute('data-fc'); });
       var cands = [], names = {};
@@ -199,8 +252,9 @@
         if (score > bestN) { bestN = score; best = c; }
       });
       if (!best) return null;
+      var prep = makePrep(scripts);
       var tabs = best.decks.filter(function (d) { return d.cards.length; }).map(function (d, i) {
-        return { key: 'g' + i, title: (d.title || 'Set ' + (i + 1)).replace(/\s+/g, ' ').trim().slice(0, 120), cards: d.cards.map(function (c) { return { f: fixMath(c.f), b: fixMath(c.b) }; }) };
+        return { key: 'g' + i, title: (d.title || 'Set ' + (i + 1)).replace(/\s+/g, ' ').trim().slice(0, 120), cards: d.cards.map(function (c) { return { f: fixMath(prep(c.f)), b: fixMath(prep(c.b)) }; }) };
       });
       return { title: docTitle(), sub: '', tabs: tabs };
     }
