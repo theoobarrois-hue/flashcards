@@ -223,6 +223,7 @@
       h += '<div class="hcard resume">' + UI.stackIcon(lc, 58) + '<div class="hmain"><div class="eyebrow">Reprendre</div><div class="htitle">' + esc(ls.title) + '</div><div class="hmeta"><svg width="100%" height="5" viewBox="0 0 100 5" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="5" rx="2.5" fill="#e6dcc8"/><rect width="' + (lt.length ? Math.round(100 * li / lt.length) : 0) + '" height="5" rx="2.5" fill="' + lc.front + '"/></svg><span>' + esc(ls.folder ? FC.pathNames(ls.folder).join(' › ') + ' · ' : '') + 'carte ' + li + ' / ' + lt.length + '</span></div></div>' +
         '<button type="button" class="btn dark" data-act="resume">Reprendre</button></div>';
     }
+    h += '</div>';
     if (needsBackup()) h += '<div class="nag"><span>Tes données sont uniquement sur cet appareil. Pense à faire une sauvegarde.</span><button type="button" class="link" data-act="backup">Sauvegarder</button></div>';
     var top = FC.children(null);
     if (top.length) h += '<div class="sec-h"><h3>Mes dossiers</h3></div><div class="fgrid">' + top.map(folderTile).join('') + '</div>';
@@ -933,7 +934,7 @@
     }
   }
 
-  FC.VERSION = 'v25';
+  FC.VERSION = 'v26';
   function refreshApp() {
     var done = function () { location.reload(); };
     var p = Promise.resolve();

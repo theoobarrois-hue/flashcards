@@ -91,7 +91,7 @@ h1{margin:0;font:600 46px/1.05 var(--serif);letter-spacing:-.02em}
 
 /* accueil */
 .hero{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:22px;margin-top:26px}
-.hero:has(.errs:only-child){grid-template-columns:1fr}
+.hero:has(.errs:only-child),.hero:has(.hcard:only-child){grid-template-columns:1fr}
 .hcard{display:flex;align-items:center;gap:18px;padding:18px 22px;border-radius:20px;min-width:0}
 .hcard.resume{background:var(--surface);border:1px solid rgba(35,31,27,.1);box-shadow:0 6px 18px rgba(60,40,20,.07)}
 .hcard.errs{background:var(--accent);color:#fffdf8;box-shadow:0 8px 20px rgba(138,44,71,.28)}
