@@ -1,23 +1,57 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Diag fractions</title>
+<title>Diag KaTeX</title>
 <link rel="stylesheet" href="vendor/katex/katex.min.css">
 <style>
-*{box-sizing:border-box}
-body{font:400 30px/1.55 Georgia,serif;margin:16px;background:#fffdf8;color:#222}
-.t{font:600 13px sans-serif;color:#888;margin-top:18px}
-.c1 .katex,.c1 .katex *{box-sizing:content-box}
-.c2 .katex{line-height:1.2 !important} .c2 .katex *{line-height:normal}
-.c3 .katex .vlist-t{display:inline-block}
-.k{font-size:1.06em}
-.c4 .face{transform:none}
+body{font:16px/1.4 -apple-system,sans-serif;margin:14px;background:#fffdf8;color:#222}
+.row{border-top:1px solid #ddd;padding:6px 0}
+.lab{font:600 12px sans-serif;color:#777}
+.res{font:12px monospace}
+.ok{color:#0a7a2f}.ko{color:#c00}
+.m{font:400 34px/1.55 Georgia,serif}
+.v1 *{box-sizing:border-box}
+.v2 .katex,.v2 .katex *{box-sizing:content-box}
+.v3{transform:translateZ(0);-webkit-backface-visibility:hidden;backface-visibility:hidden;transform-style:preserve-3d}
+.v4{display:flex;flex-direction:column;overflow:auto;height:140px}.v4 .m{margin:auto}
+.v5 .m{letter-spacing:-.005em}
+.v6 .katex{font-size:1.06em}
+.v7 .m{text-align:center}
+.v8{position:absolute;left:-9999px}
 </style></head><body>
-<div class="t">A — actuel (border-box)</div><div id="a"></div>
-<div class="t">B — content-box</div><div id="b" class="c1"></div>
-<div class="t">C — line-height normal dans KaTeX</div><div id="c" class="c2"></div>
-<div class="t">D — MathML natif</div><div id="d"></div>
+<div><b>Diagnostic KaTeX</b> — fais une capture de toute la page.</div>
+<div id="env" class="res"></div>
+<div id="out"></div>
 <script src="vendor/katex/katex.min.js"></script>
 <script>
-var T='de $\\frac{1}{1+x}$ à $\\frac{1}{(1-x)^2}$ et $x\\neq0$';
-function r(id,o){var e=document.getElementById(id);e.textContent='';var h=T.replace(/\$([^$]+)\$/g,function(_,m){return katex.renderToString(m,o)});e.innerHTML='de '+h.slice(3)}
-r('a',{});r('b',{});r('c',{});r('d',{output:'mathml'});
+document.getElementById('env').textContent=navigator.userAgent+' | dpr='+devicePixelRatio;
+var TEX=['\\frac{1}{1+x}','x\\underset{x\\to0}{=}y','\\sum_{k=1}^{n}x^k','\\frac{x^2}{2}'];
+var VARS=[['v0','pur KaTeX',''],['v1','* border-box (ancien)','v1'],['v2','content-box','v2'],['v3','calque 3D + backface','v3'],['v4','flex + overflow auto','v4'],['v5','letter-spacing','v5'],['v6','font-size 1.06em','v6'],['v7','text-align center','v7']];
+function geo(root){ /* écarts verticaux internes en em, indépendants de la position */
+  var out=[],fs=parseFloat(getComputedStyle(root.querySelector('.katex')).fontSize);
+  root.querySelectorAll('.vlist').forEach(function(v){
+    var kids=[].slice.call(v.children),ys=kids.map(function(k){var b=k.querySelector('.mord,.mop,.mrel,.frac-line,.mbin');var r=(b||k).getBoundingClientRect();return Math.round((r.bottom/fs)*100)/100});
+    var b0=v.getBoundingClientRect().bottom;
+    out.push(ys.map(function(y){return Math.round((y-b0/fs)*100)/100}).join(','));
+  });
+  return out.join(' | ');
+}
+var ref={};
+(async function(){
+  try{ if(document.fonts&&document.fonts.ready) await document.fonts.ready; }catch(e){}
+  var out=document.getElementById('out');
+  VARS.forEach(function(v){
+    var d=document.createElement('div');d.className='row '+v[2];
+    var lab=document.createElement('div');lab.className='lab';lab.textContent=v[0]+' — '+v[1];d.appendChild(lab);
+    var m=document.createElement('div');m.className='m';
+    m.innerHTML='de '+TEX.map(function(t){return katex.renderToString(t,{output:'html'})}).join(' ; ');
+    d.appendChild(m);
+    var res=document.createElement('div');res.className='res';d.appendChild(res);
+    out.appendChild(d);
+    var g=geo(d);
+    if(v[0]==='v0')ref.g=g;
+    var a=g.replace(/ \| /g,',').split(',').map(Number),b=(ref.g||g).replace(/ \| /g,',').split(',').map(Number);
+    var same=a.length===b.length&&a.every(function(x,i){return Math.abs(x-b[i])<0.06});
+    res.className='res '+(same?'ok':'ko');
+    res.textContent=(v[0]==='v0'?'réf. ':(same?'OK = v0 ':'DIFFÉRENT de v0 '))+g;
+  });
+})();
 </script></body></html>
