@@ -422,3 +422,8 @@ code{background:#f1e9d7;padding:1px 5px;border-radius:5px;font-size:.92em}
 .btn.errb{color:#a83e29;border-color:#e2b3a8;background:#fdf1ee}
 .errpill{align-self:center;border:1px solid #e2b3a8;background:#fdf1ee;color:#a83e29;border-radius:999px;padding:6px 12px;font:600 12.5px var(--sans);white-space:nowrap}
 .empty-card.done .btn+.btn{margin-top:10px}
+
+/* MathML natif (Safari) */
+.katex-mathml{position:static !important;clip:auto !important;width:auto !important;height:auto !important;overflow:visible !important;border:0 !important;padding:0 !important}
+math{font-family:"STIX Two Math","Latin Modern Math","Cambria Math",math;font-size:1.12em}
+math[display="block"]{margin:.4em 0}

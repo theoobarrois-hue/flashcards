@@ -1,0 +1,23 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Diag fractions</title>
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<style>
+*{box-sizing:border-box}
+body{font:400 30px/1.55 Georgia,serif;margin:16px;background:#fffdf8;color:#222}
+.t{font:600 13px sans-serif;color:#888;margin-top:18px}
+.c1 .katex,.c1 .katex *{box-sizing:content-box}
+.c2 .katex{line-height:1.2 !important} .c2 .katex *{line-height:normal}
+.c3 .katex .vlist-t{display:inline-block}
+.k{font-size:1.06em}
+.c4 .face{transform:none}
+</style></head><body>
+<div class="t">A — actuel (border-box)</div><div id="a"></div>
+<div class="t">B — content-box</div><div id="b" class="c1"></div>
+<div class="t">C — line-height normal dans KaTeX</div><div id="c" class="c2"></div>
+<div class="t">D — MathML natif</div><div id="d"></div>
+<script src="vendor/katex/katex.min.js"></script>
+<script>
+var T='de $\\frac{1}{1+x}$ à $\\frac{1}{(1-x)^2}$ et $x\\neq0$';
+function r(id,o){var e=document.getElementById(id);e.textContent='';var h=T.replace(/\$([^$]+)\$/g,function(_,m){return katex.renderToString(m,o)});e.innerHTML='de '+h.slice(3)}
+r('a',{});r('b',{});r('c',{});r('d',{output:'mathml'});
+</script></body></html>

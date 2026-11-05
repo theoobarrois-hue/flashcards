@@ -1,9 +1,10 @@
 /* Flashcards — service worker : tout est gardé sur l'appareil, l'appli marche hors ligne */
-const CACHE = 'flashcards-20d85cd095';
+const CACHE = 'flashcards-3ed3b5093f';
 const ASSETS = [
   "./",
   "LISEZMOI.txt",
   "config.js",
+  "diag.html",
   "fonts/dm-sans-latin-wght-normal.woff2",
   "fonts/fraunces-latin-wght-italic.woff2",
   "fonts/fraunces-latin-wght-normal.woff2",

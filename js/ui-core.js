@@ -206,12 +206,17 @@
 
   /* ---------- Éditeur de carte ---------- */
   var KATEX_MACROS = FC.MACROS_JSON;
+  /* MathML natif (option de secours) : localStorage fc-mathml = '1' */
+  UI.mathml = function () {
+    try { return localStorage.getItem('fc-mathml') === '1'; } catch (e) { return false; }
+  };
   UI.typeset = function (el) {
     if (typeof window.renderMathInElement !== 'function' || !el) return;
     try {
       window.renderMathInElement(el, {
         delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }],
         throwOnError: false,
+        output: UI.mathml() ? 'mathml' : 'htmlAndMathml',
         macros: FC.fixMacros(JSON.parse(KATEX_MACROS))
       });
     } catch (e) { /* le LaTeX brut reste affiché */ }
