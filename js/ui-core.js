@@ -244,7 +244,6 @@
         output: UI.mathml() ? 'mathml' : 'htmlAndMathml',
         macros: FC.fixMacros(JSON.parse(KATEX_MACROS))
       });
-      if (UI.webkit()) UI.fixFractions(el);
     } catch (e) { /* le LaTeX brut reste affiché */ }
   };
   UI.fmt = function (html) {
