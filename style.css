@@ -181,6 +181,7 @@ h1{margin:0;font:600 46px/1.05 var(--serif);letter-spacing:-.02em}
 .stack.s1{left:22px;right:22px;top:8px;bottom:8px;background:#f1e9d7;border:1px solid rgba(35,31,27,.08)}
 .card{position:absolute;left:0;right:0;top:0;bottom:18px;perspective:1600px;cursor:pointer;outline:none}
 .card,.card *{touch-action:none}
+.card .face[data-sc="1"],.card .face[data-sc="1"] *{touch-action:pan-y}
 .card.nxt,.card.nxt *{touch-action:auto}
 .card{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;will-change:transform;transition:transform .38s cubic-bezier(.22,1.2,.36,1),opacity .27s ease-out}
 .card{transform-origin:50% 92%}

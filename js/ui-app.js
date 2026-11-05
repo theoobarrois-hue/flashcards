@@ -324,6 +324,12 @@
       '<div class="seginfo"><span>' + FC.plural(seenN, 'vue') + (errN ? ' · ' + errN + ' à revoir' : '') + '</span><span>' + FC.plural(Math.max(n - seenN, 0), 'restante') + '</span></div>';
   }
 
+  /* Cartes longues : la face défile verticalement au doigt (le glisser horizontal reste le swipe) */
+  function markScroll() {
+    $$('#cardHost .card:not(.nxt) .face').forEach(function (f) { f.dataset.sc = f.scrollHeight > f.clientHeight + 2 ? '1' : ''; });
+  }
+  window.addEventListener('resize', function () { markScroll(); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { markScroll(); });
   function paintCard() {
     var host = $('#cardHost');
     if (!host || !R) return;
@@ -362,6 +368,7 @@
     if (R.sig !== sig) {
       host.innerHTML = cardHTML(c, s);
       UI.typeset(host);
+      markScroll();
       R.sig = sig;
       if (R.anim) { var ce = $('#card'); if (ce) { ce.classList.add('enter'); ce.addEventListener('animationend', function () { ce.classList.remove('enter'); }, { once: true }); } }
     }
@@ -950,7 +957,7 @@
     }
   }
 
-  FC.VERSION = 'v33';
+  FC.VERSION = 'v34';
   function refreshApp() {
     var done = function () { location.reload(); };
     var p = Promise.resolve();
