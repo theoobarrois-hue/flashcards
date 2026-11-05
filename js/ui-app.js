@@ -508,12 +508,18 @@
       var card = e.target.closest && e.target.closest('#card');
       if (!card || e.target.closest('a,button')) return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
-      D = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0, drag: false, card: card, lx: e.clientX, ly: e.clientY, lt: performance.now(), vx: 0, vy: 0 };
+      var fc = e.target.closest('.face');
+      D = { sc: !!(fc && fc.dataset.sc === '1'), id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0, drag: false, card: card, lx: e.clientX, ly: e.clientY, lt: performance.now(), vx: 0, vy: 0 };
     });
     document.addEventListener('pointermove', function (e) {
       if (!D || e.pointerId !== D.id) return;
       var dx = e.clientX - D.x, dy = e.clientY - D.y;
       if (!D.drag) {
+        /* carte longue : un geste plutôt vertical = défilement, on ne démarre pas le swipe */
+        if (D.sc) {
+          if (Math.abs(dy) > 7 && Math.abs(dy) > Math.abs(dx) * 0.7) { D = null; return; }
+          if (Math.abs(dx) < 14) return;
+        }
         if (Math.hypot(dx, dy) < 6) return;
         D.drag = true;
         D.card.classList.add('dragging');
@@ -957,7 +963,7 @@
     }
   }
 
-  FC.VERSION = 'v34';
+  FC.VERSION = 'v35';
   function refreshApp() {
     var done = function () { location.reload(); };
     var p = Promise.resolve();
