@@ -223,6 +223,35 @@
         return inline(s);
       };
     }
+    /* Données déclarées dans une fonction (IIFE, « use strict ») : inaccessibles depuis l'extérieur, on lit le littéral dans le source */
+    function literalAt(t, i) {
+      var open = t.charAt(i), depth = 0, n = t.length, q = null;
+      for (var k = i; k < n; k++) {
+        var ch = t.charAt(k);
+        if (q) { if (ch === '\\') k++; else if (ch === q) q = null; continue; }
+        if (ch === '"' || ch === "'" || ch === '`') { q = ch; continue; }
+        if (ch === '/' && t.charAt(k + 1) === '/') { var e1 = t.indexOf('\n', k); if (e1 < 0) return null; k = e1; continue; }
+        if (ch === '/' && t.charAt(k + 1) === '*') { var e2 = t.indexOf('*/', k + 2); if (e2 < 0) return null; k = e2 + 1; continue; }
+        if (ch === '[' || ch === '{') depth++;
+        else if (ch === ']' || ch === '}') { depth--; if (depth === 0) return t.slice(i, k + 1); }
+      }
+      return null;
+    }
+    function localValues(scripts) {
+      var out = [], seen = {};
+      scripts.forEach(function (sc) {
+        var type = (sc.type || '').toLowerCase(), t = sc.textContent || '';
+        if ((type && type.indexOf('javascript') < 0 && type !== 'module') || t.length > 250000) return;
+        var re = /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*([\[{])/g, m;
+        while ((m = re.exec(t))) {
+          var lit = literalAt(t, m.index + m[0].length - 1);
+          if (!lit || lit.length < 40 || seen[lit]) continue;
+          seen[lit] = 1;
+          try { var v = (new Function('"use strict";return (' + lit + ');'))(); if (nested(v)) out.push(v); } catch (e) { /* dépend d'autres variables : on ignore */ }
+        }
+      });
+      return out;
+    }
     function tryGeneric() {
       var scripts = [].slice.call(document.scripts).filter(function (s) { return !s.hasAttribute('data-fc'); });
       var cands = [], names = {};
@@ -238,6 +267,13 @@
         var v;
         try { v = (0, eval)(nm); } catch (e) { return; }
         if (!nested(v) || (!Array.isArray(v) && !isPlain(v))) return;
+        ['strict', 'loose'].forEach(function (mode) {
+          var out = [];
+          try { collect(v, '', out, 0, mode, { n: 0 }); } catch (e) { /* rien */ }
+          if (out.length) cands.push({ decks: out, mode: mode });
+        });
+      });
+      localValues(scripts).forEach(function (v) {
         ['strict', 'loose'].forEach(function (mode) {
           var out = [];
           try { collect(v, '', out, 0, mode, { n: 0 }); } catch (e) { /* rien */ }

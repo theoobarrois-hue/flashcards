@@ -934,7 +934,7 @@
     }
   }
 
-  FC.VERSION = 'v31';
+  FC.VERSION = 'v32';
   function refreshApp() {
     var done = function () { location.reload(); };
     var p = Promise.resolve();
