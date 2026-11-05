@@ -301,12 +301,12 @@ code{background:#f1e9d7;padding:1px 5px;border-radius:5px;font-size:.92em}
   .only-m{display:inline-flex!important}
   .only-d{display:none!important}
   #tabbar{display:flex;position:fixed;left:16px;right:16px;bottom:calc(14px + var(--sb));height:64px;align-items:center;justify-content:space-around;padding:0 8px;background:rgba(255,253,248,.94);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:32px;box-shadow:0 10px 26px rgba(60,40,20,.18);z-index:20}
-  body[data-view=set] #tabbar,body[data-view=errors] #tabbar{display:none}
+  body[data-view=set] #tabbar,body[data-view=errors] #tabbar,body[data-view=dueRun] #tabbar{display:none}
   .tb{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;width:96px;border:none;background:none;font:500 11px var(--sans);color:#5b5348}
   .tb.on{color:var(--accent);font-weight:700}
   .tbadge{position:absolute;top:-6px;right:22px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--accent);color:#fffdf8;font:700 11px/18px var(--sans);text-align:center;font-style:normal}
   #toast{bottom:calc(96px + var(--sb))}
-  body[data-view=set] #toast,body[data-view=errors] #toast{bottom:calc(30px + var(--sb))}
+  body[data-view=set] #toast,body[data-view=errors] #toast,body[data-view=dueRun] #toast{bottom:calc(30px + var(--sb))}
   .page{padding:calc(16px + var(--st)) 16px calc(110px + var(--sb))}
   h1{font-size:34px}
   .page-head{flex-direction:column;align-items:stretch;gap:14px}
