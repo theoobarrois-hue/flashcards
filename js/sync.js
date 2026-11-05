@@ -145,10 +145,16 @@
     st.folders.forEach(function (f) { out['f:' + f.id] = { name: f.name, parent: f.parent || null, color: f.color || null, order: f.order || 0 }; });
     st.sets.forEach(function (s) {
       out['s:' + s.id] = { folder: s.folder || null, title: s.title, sub: s.sub || '', order: s.order || 0 };
+      if (s.srs) out['s:' + s.id].srs = s.srs;
+      if (s.recapTitle) out['s:' + s.id].rt = s.recapTitle;
       s.chapters.forEach(function (c) { out['h:' + s.id + ':' + c.id] = { title: c.title, o: c.o || 0 }; });
       var err = {};
       s.errors.forEach(function (id) { err[id] = 1; });
-      s.cards.forEach(function (c) { out['c:' + s.id + ':' + c.id] = { ch: c.ch, f: c.f, b: c.b, n: c.n || '', star: !!c.star, err: !!err[c.id], o: c.o || 0 }; });
+      s.cards.forEach(function (c) {
+        var e = { ch: c.ch, f: c.f, b: c.b, n: c.n || '', star: !!c.star, err: !!err[c.id], o: c.o || 0 };
+        if (c.due !== undefined && c.due !== null) { e.due = c.due; e.lv = c.lv || 0; }
+        out['c:' + s.id + ':' + c.id] = e;
+      });
     });
     return out;
   }
@@ -194,6 +200,8 @@
         } else {
           if (!s) { s = { id: p[1], chapters: [], cards: [], errors: [], seen: [], pos: {}, tab: 'recap' }; st.sets.push(s); }
           s.folder = d.folder || null; s.title = d.title; s.sub = d.sub || ''; s.order = d.order || 0;
+          if (d.srs) s.srs = d.srs; else delete s.srs;
+          if (d.rt) s.recapTitle = d.rt; else delete s.recapTitle;
         }
         applied.push(r);
       } else if (t === 'h') {
@@ -220,6 +228,7 @@
           var cd = FC.findCard(sc, p[2]);
           if (!cd) { cd = { id: p[2] }; sc.cards.push(cd); }
           cd.ch = d.ch; cd.f = d.f; cd.b = d.b; cd.n = d.n || ''; cd.star = !!d.star; cd.o = d.o || 0;
+          if (d.due !== undefined) { cd.due = d.due; cd.lv = d.lv || 0; } else { delete cd.due; delete cd.lv; }
           var i = sc.errors.indexOf(cd.id);
           if (d.err && i < 0) sc.errors.push(cd.id);
           if (!d.err && i >= 0) sc.errors.splice(i, 1);

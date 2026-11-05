@@ -16,6 +16,7 @@
     if (!p.length) return { v: 'lib' };
     if (p[0] === 'f' && p[1]) return { v: 'folder', id: p[1] };
     if (p[0] === 's' && p[1]) return { v: 'set', id: p[1], tab: p[2] || null };
+    if (p[0] === 'due') return p[1] ? { v: 'dueRun', key: p[1] === 'all' ? 'all' : p[1] + ':' + (p[2] || '') } : { v: 'due' };
     return { v: 'lib' };
   }
   function go(hash) {
@@ -39,7 +40,10 @@
     return s.chapters.length ? s.chapters[0].id : 'recap';
   }
   function buildSession() {
-    if (route.v === 'errors') {
+    if (route.v === 'dueRun') {
+      var dq = dueQuery(route.key);
+      R = { kind: 'due', tab: 'due', title: dq.title, crumb: dq.crumb, base: dq.list.slice(), list: order(dq.list), idx: 0, flipped: false, sig: '', okN: 0, noN: 0 };
+    } else if (route.v === 'errors') {
       R = { kind: 'errors', tab: 'errors', list: order(FC.allErrors()), idx: 0, flipped: false, sig: '' };
     } else {
       var s = FC.set(route.id), tab = defaultTab(s);
@@ -52,7 +56,7 @@
     if (route.v === 'folder' && !FC.folder(route.id)) { route = { v: 'lib' }; history.replaceState(null, '', '#/'); }
     if (route.v === 'set' && !FC.set(route.id)) { route = { v: 'lib' }; history.replaceState(null, '', '#/'); }
     R = null;
-    if (route.v === 'set' || route.v === 'errors') buildSession();
+    if (route.v === 'set' || route.v === 'errors' || route.v === 'dueRun') buildSession();
     if (route.v !== 'lib') Q = '';
     var openNow = activeFolders();
     for (var fid in openNow) FC.get().ui.open[fid] = true;
@@ -109,6 +113,7 @@
     var t = FC.totals();
     var h = '<div class="side-in"><div class="brand">' + logo() + '<span>Flashcards</span></div>' +
       '<button type="button" class="nav' + (route.v === 'lib' ? ' on' : '') + '" data-act="lib">' + ic('grid', 18) + '<span>Bibliothèque</span></button>' +
+      '<button type="button" class="nav' + (route.v === 'due' || route.v === 'dueRun' ? ' on' : '') + '" data-act="due">' + ic('flip', 18) + '<span>À réviser</span>' + (FC.dueTotal() ? '<span class="cnt">' + FC.dueTotal() + '</span>' : '') + '</button>' +
       '<div class="side-h"><span>Dossiers</span><button type="button" class="iconbtn sm" data-act="newFolder" aria-label="Nouveau dossier">' + ic('plus', 16, 2.2) + '</button></div>' +
       '<div class="tree">' + (FC.children(null).length ? treeHTML(null, 0, activeFolders()) : '<p class="side-empty">Aucun dossier pour l’instant.</p>') +
       FC.setsIn(null).map(function (s) {
@@ -126,6 +131,7 @@
     var t = FC.totals();
     $('#tabbar').innerHTML =
       '<button type="button" class="tb' + (route.v === 'lib' || route.v === 'folder' || route.v === 'set' ? ' on' : '') + '" data-act="lib">' + ic('grid', 24, 1.9) + '<span>Bibliothèque</span></button>' +
+      '<button type="button" class="tb' + (route.v === 'due' || route.v === 'dueRun' ? ' on' : '') + '" data-act="due">' + ic('flip', 24, 1.9) + '<span>À réviser</span>' + (FC.dueTotal() ? '<i class="tbadge">' + FC.dueTotal() + '</i>' : '') + '</button>' +
       '<button type="button" class="tb" data-act="import" data-folder="">' + ic('download', 24, 1.9) + '<span>Importer</span></button>';
   }
 
@@ -133,10 +139,11 @@
     var m = $('#main'), h = '';
     if (route.v === 'lib') h = libraryView();
     else if (route.v === 'folder') h = folderView(FC.folder(route.id));
+    else if (route.v === 'due') h = dueView();
     else h = reviewView();
     m.innerHTML = h;
     if (route.v === 'lib') paintLibBody();
-    if (route.v === 'set' || route.v === 'errors') { R.sig = ''; paintCard(); }
+    if (route.v === 'set' || route.v === 'errors' || route.v === 'dueRun') { R.sig = ''; paintCard(); }
     UI.typeset(m);
   }
 
@@ -174,6 +181,8 @@
     var meta = [];
     if (withPath && s.folder) meta.push(FC.pathNames(s.folder).join(' › '));
     meta.push(FC.plural(s.cards.length, 'carte'));
+    var dn = s.srs && s.srs.on ? FC.dueEntries(s).length : -1;
+    if (dn >= 0) meta.push(dn ? dn + ' à réviser' : 'à jour');
     return '<div class="srow"><button type="button" class="srow-main" data-act="openSet" data-id="' + s.id + '" data-ctx="setMenu">' + UI.stackIcon(c) +
       '<span class="stxt"><span class="stitle">' + esc(s.title) + '</span><span class="smeta">' + esc(meta.join(' · ')) + '</span>' +
       '<svg class="pbar" width="100%" height="5" viewBox="0 0 100 5" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="5" rx="2.5" fill="#e9dfcb"/><rect width="' + pct + '" height="5" rx="2.5" fill="' + c.front + '"/></svg></span>' +
@@ -204,6 +213,10 @@
     }
     var last = st.last && FC.set(st.last.setId) ? st.last : null;
     h += '<div class="hero">';
+    if (FC.get().sets.some(function (x) { return x.srs && x.srs.on; })) {
+      var dt = FC.dueTotal();
+      h += '<div class="hcard resume duecard"><div class="hmain"><div class="eyebrow">Aujourd’hui</div><div class="htitle">' + (dt ? FC.plural(dt, 'carte') + ' à réviser' : 'Tout est à jour') + '</div></div><button type="button" class="btn dark" data-act="due">' + (dt ? 'Réviser' : 'Voir') + '</button></div>';
+    }
     if (last) {
       var ls = FC.set(last.setId), lt = FC.cardsOf(ls, last.tab), li = Math.min((ls.pos[last.tab] || 0) + 1, Math.max(lt.length, 1));
       var lc = FC.colorOfSet(ls);
@@ -250,11 +263,12 @@
 
   function reviewView() {
     var set = R.kind === 'set' ? FC.set(R.setId) : null;
-    var backAct = set ? (set.folder ? 'openFolder' : 'lib') : 'lib';
+    var isDue = R.kind === 'due';
+    var backAct = isDue ? 'due' : set ? (set.folder ? 'openFolder' : 'lib') : 'lib';
     var backId = set && set.folder ? ' data-id="' + set.folder + '"' : '';
-    var backLabel = set ? (set.folder ? FC.folder(set.folder).name : 'Bibliothèque') : 'Bibliothèque';
-    var crumb = set ? (set.folder ? FC.pathNames(set.folder).join(' › ') : 'Sans dossier') : 'Toutes les cartes marquées';
-    var title = set ? set.title : 'Mes erreurs';
+    var backLabel = isDue ? 'À réviser' : set ? (set.folder ? FC.folder(set.folder).name : 'Bibliothèque') : 'Bibliothèque';
+    var crumb = isDue ? R.crumb : set ? (set.folder ? FC.pathNames(set.folder).join(' › ') : 'Sans dossier') : '';
+    var title = isDue ? R.title : set ? set.title : '';
     return '<div class="page rv" id="rv"><div class="rv-top"><button type="button" class="backbtn" data-act="' + backAct + '"' + backId + '>' + ic('chevL', 20, 2.6) + '<span>' + esc(backLabel) + '</span></button>' +
       '<div class="rv-crumb" id="rvSub">' + esc(crumb) + '</div>' +
       '<div class="rv-actions"><button type="button" class="btn sm" data-act="edit" aria-label="Modifier la carte">' + ic('edit', 15, 2) + '<span class="lbl">Modifier la carte</span></button>' +
@@ -318,10 +332,10 @@
     while (n && !cc) { R.list.splice(R.idx, 1); n = R.list.length; R.idx = Math.min(R.idx, Math.max(0, n - 1)); cc = cur(); }
     var set = R.kind === 'set' ? FC.set(R.setId) : null;
     if (R.done && n) {
-      host.innerHTML = '<div class="empty-card done"><h2>Tour terminé</h2><p><b class="okn">' + FC.plural(R.okN || 0, 'carte connue', 'cartes connues') + '</b> · <b class="non">' + FC.plural(R.noN || 0, 'erreur') + '</b></p><button type="button" class="btn primary" data-act="restart">Recommencer</button></div>';
+      host.innerHTML = '<div class="empty-card done"><h2>Tour terminé</h2><p><b class="okn">' + FC.plural(R.okN || 0, 'carte connue', 'cartes connues') + '</b> · <b class="non">' + FC.plural(R.noN || 0, 'erreur') + '</b></p>' + (R.kind === 'due' ? '<button type="button" class="btn primary" data-act="due">Retour à « À réviser »</button>' : '<button type="button" class="btn primary" data-act="restart">Recommencer</button>') + '</div>';
       R.sig = '';
       $('#counter').textContent = n + ' cartes';
-      $('#segInfo').innerHTML = set ? segsHTML(set) : '';
+      $('#segInfo').innerHTML = segsHTML(set);
       ['btnNo', 'btnOk'].forEach(function (id) { var b = $('#' + id); if (b) b.disabled = true; });
       $$('.controls .cbtn.dark').forEach(function (b) { b.disabled = true; });
       var pv = $('#btnPrev'); if (pv) pv.disabled = false;
@@ -329,7 +343,8 @@
     }
     if (!cc) {
       var msg, cta = '';
-      if (R.tab === 'errors') msg = '<h2>Aucune erreur dans ce jeu</h2><p>Glisse une carte vers la gauche pendant la révision pour la retrouver ici.</p>';
+      if (R.kind === 'due') { msg = '<h2>Rien à réviser</h2><p>Tout est à jour pour aujourd’hui.</p>'; cta = '<button type="button" class="btn primary" data-act="due">Retour</button>'; }
+      else if (R.tab === 'errors') msg = '<h2>Aucune erreur dans ce jeu</h2><p>Glisse une carte vers la gauche pendant la révision pour la retrouver ici.</p>';
       else if (R.tab === 'recap') msg = '<h2>Le Récap est vide</h2><p>Coche « Ultra-important » dans une carte pour la placer ici.</p>';
       else { msg = '<h2>Ce chapitre est vide</h2><p>Ajoute ta première carte.</p>'; cta = '<button type="button" class="btn primary" data-act="addCard">' + ic('plus', 15, 2.4) + 'Ajouter une carte</button>'; }
       host.innerHTML = '<div class="empty-card">' + msg + cta + '</div>';
@@ -369,6 +384,8 @@
       if (tabs) tabs.innerHTML = tabsHTML(s);
       var tt = $('#rvTitle');
       if (tt) tt.textContent = s.title;
+    } else if (R.kind === 'due') {
+      R.list = R.list.filter(function (e) { var s = FC.set(e.setId); return s && FC.findCard(s, e.cardId); });
     } else {
       R.list = order(FC.allErrors());
     }
@@ -384,7 +401,7 @@
     SHUF.on = !SHUF.on;
     SHUF.rank = {};
     var curId = R.list[R.idx] && R.list[R.idx].cardId;
-    if (R.kind === 'set') R.list = entries(FC.set(R.setId), R.tab); else R.list = order(FC.allErrors());
+    if (R.kind === 'set') R.list = entries(FC.set(R.setId), R.tab); else if (R.kind === 'due') R.list = order((R.base || R.list).filter(function (e) { var s = FC.set(e.setId); return s && FC.findCard(s, e.cardId); })); else R.list = order(FC.allErrors());
     var i = -1;
     R.list.forEach(function (e, k) { if (e.cardId === curId) i = k; });
     if (SHUF.on) { R.idx = 0; R.flipped = false; } else { R.idx = i >= 0 ? i : 0; }
@@ -448,6 +465,7 @@
       busy = false;
       if (!R || !FC.findCard(cc.set, cc.card.id)) return;
       FC.setError(cc.set.id, cc.card.id, kind === 'no');
+      FC.reviewResult(cc.set.id, cc.card.id, kind === 'ok');
       if (kind === 'ok') R.okN = (R.okN || 0) + 1; else R.noN = (R.noN || 0) + 1;
       R.flipped = false; R.anim = !hasNext; R.sig = '';
       if (R.idx >= R.list.length - 1) R.done = true; else R.idx++;
@@ -623,6 +641,7 @@
     UI.menu(s.title, [
       { id: 'rename', label: 'Renommer', icon: 'edit' },
       { id: 'addin', label: 'Importer des cartes dans ce jeu', icon: 'upload' },
+      { id: 'srs', label: FC.srsOf(s).on ? 'Suivi activé — réglages' : 'Activer le suivi (rappels)', icon: 'flip' },
       { id: 'chapters', label: 'Gérer les chapitres', icon: 'book' },
       { id: 'move', label: 'Déplacer', icon: 'move' },
       { id: 'export', label: 'Exporter en HTML', icon: 'download' },
@@ -632,6 +651,7 @@
       if (!a) return;
       if (a === 'rename') UI.askName('Renommer le jeu', 'Nom', s.title).then(function (n) { if (n) FC.renameSet(id, n); });
       else if (a === 'addin') { pickFiles(s.folder); pickTargetSet = id; }
+      else if (a === 'srs') srsDialog(id);
       else if (a === 'chapters') chaptersDialog(id);
       else if (a === 'move') UI.chooseFolder('Déplacer « ' + s.title + ' »', s.folder, null).then(function (r) { if (r) FC.moveSet(id, UI.resolvePick(r.pick)); });
       else if (a === 'export') exportSet(id);
@@ -745,6 +765,85 @@
     });
   }
 
+
+  /* ---------- À réviser (jeux avec suivi) ---------- */
+  function dueGroups() {
+    var g = {}, keys = [];
+    FC.get().sets.forEach(function (s) {
+      if (!(s.srs && s.srs.on)) return;
+      var tf = s.folder ? FC.topFolder(s.folder) : null, k = tf ? tf.id : '_';
+      if (!g[k]) { g[k] = { id: k, name: tf ? tf.name : 'Sans dossier', color: tf ? FC.colorOfFolder(tf.id) : FC.color('ardoise'), sets: [] }; keys.push(k); }
+      g[k].sets.push(s);
+    });
+    var ord = FC.children(null).map(function (f) { return f.id; });
+    keys.sort(function (a, b) { var ia = ord.indexOf(a), ib = ord.indexOf(b); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib); });
+    return keys.map(function (k) { return g[k]; });
+  }
+  function dueQuery(key) {
+    var groups = dueGroups(), list = [], title = 'À réviser', crumb = 'Toutes les matières';
+    var p = String(key || 'all').split(':');
+    groups.forEach(function (gr) {
+      if (p[0] === 'f' && gr.id !== p[1]) return;
+      gr.sets.forEach(function (s) {
+        if (p[0] === 's' && s.id !== p[1]) return;
+        list = list.concat(FC.dueEntries(s));
+        if (p[0] === 's') { title = s.title; crumb = gr.name; }
+      });
+      if (p[0] === 'f') { title = gr.name; crumb = 'À réviser'; }
+    });
+    return { list: list, title: title, crumb: crumb };
+  }
+  function dueView() {
+    var groups = dueGroups(), total = 0;
+    groups.forEach(function (gr) { gr.n = 0; gr.sets.forEach(function (s) { s.__n = FC.dueEntries(s).length; gr.n += s.__n; }); total += gr.n; });
+    var h = '<div class="page due"><header class="fhead"><div class="fhead-t"><h1>À réviser aujourd’hui</h1><div class="sub">' + (total ? FC.plural(total, 'carte') + ' à revoir' : 'Tout est à jour') + '</div></div>' +
+      (total ? '<button type="button" class="btn dark" data-act="dueRun" data-key="all">Tout réviser</button>' : '') + '</header>';
+    if (!groups.length) {
+      h += '<div class="empty-note">Aucun jeu n’a de suivi pour l’instant.<br>Ouvre un jeu, menu ⋯ → <b>Activer le suivi (rappels)</b>.</div>';
+    }
+    groups.forEach(function (gr) {
+      h += '<section class="dgroup"><div class="dg-h"><span class="dot" style="background:' + gr.color.front + '"></span><h3>' + esc(gr.name) + '</h3><span class="dg-n">' + (gr.n || '✓') + '</span>' +
+        '<button type="button" class="btn sm" data-act="dueRun" data-key="f:' + gr.id + '"' + (gr.n ? '' : ' disabled') + '>Réviser</button></div><div class="dlist">';
+      gr.sets.forEach(function (s) {
+        var cfg = FC.srsOf(s), nd = FC.nextDue(s);
+        var rhythm = cfg.mode === 'fixed' ? 'tous les ' + cfg.every + ' j' : cfg.steps.join(' · ') + ' j';
+        var meta = s.__n ? FC.plural(s.__n, 'carte') + ' à réviser' : 'à jour' + (nd !== null ? ' · prochaine ' + (nd === 1 ? 'demain' : 'dans ' + nd + ' j') : '');
+        var sub = s.folder ? FC.pathNames(s.folder).slice(1).join(' › ') : '';
+        h += '<div class="drow"><button type="button" class="drow-main" data-act="dueRun" data-key="s:' + s.id + '"' + (s.__n ? '' : ' disabled') + '><span class="dt">' + esc(s.title) + '</span>' +
+          '<span class="dm">' + esc((sub ? sub + ' · ' : '') + meta) + ' · ' + esc(rhythm) + '</span></button>' +
+          '<button type="button" class="kebab flat" data-act="srs" data-id="' + s.id + '" aria-label="Réglages du suivi">' + ic('gear', 16) + '</button></div>';
+      });
+      h += '</div></section>';
+    });
+    return h + '</div>';
+  }
+  function srsDialog(setId) {
+    var s = FC.set(setId);
+    if (!s) return;
+    var c = FC.srsOf(s);
+    var body = '<label class="chk"><input type="checkbox" id="srOn"' + (c.on ? ' checked' : '') + '><span>Suivre ce jeu <em>(rappels espacés)</em></span></label>' +
+      '<div class="lbl">Rythme</div><div class="radios">' +
+      '<label><input type="radio" name="srm" value="prog"' + (c.mode !== 'fixed' ? ' checked' : '') + '><span><b>Progressif</b><em>chaque réussite espace davantage la carte</em></span></label>' +
+      '<label><input type="radio" name="srm" value="fixed"' + (c.mode === 'fixed' ? ' checked' : '') + '><span><b>Fixe</b><em>la carte revient tous les N jours (citations, vocabulaire…)</em></span></label></div>' +
+      '<label class="field"><span>Intervalles progressifs (jours, séparés par des virgules)</span><input type="text" id="srSteps" value="' + esc(c.steps.join(', ')) + '" autocomplete="off"></label>' +
+      '<label class="field"><span>Mode fixe : revient tous les (jours)</span><input type="number" id="srEvery" min="1" value="' + c.every + '"></label>' +
+      '<label class="field"><span>Nouvelles cartes par jour (0 = toutes)</span><input type="number" id="srNew" min="0" value="' + c.newPerDay + '"></label>' +
+      '<p class="hint">Glisser à droite = je connais, à gauche = erreur (la carte revient demain).</p>';
+    UI.modal({
+      title: 'Suivi de « ' + s.title + ' »', wide: true, noMobileFocus: true, body: body,
+      buttons: [{ id: 'cancel', label: 'Annuler' }, { id: 'ok', label: 'Enregistrer', kind: 'primary' }],
+      collect: function (el) {
+        var steps = String(UI.$('#srSteps', el).value).split(/[^0-9]+/).map(function (x) { return parseInt(x, 10); }).filter(function (x) { return x > 0; });
+        var m = UI.$('input[name=srm]:checked', el);
+        return { on: UI.$('#srOn', el).checked, mode: m ? m.value : 'prog', steps: steps.length ? steps : [1, 3, 7, 15, 30], every: Math.max(1, parseInt(UI.$('#srEvery', el).value, 10) || 10), newPerDay: Math.max(0, parseInt(UI.$('#srNew', el).value, 10) || 0) };
+      }
+    }).then(function (r) {
+      if (!r || typeof r !== 'object') return;
+      FC.setSrs(setId, r);
+      UI.toast(r.on ? 'Suivi activé.' : 'Suivi désactivé.');
+    });
+  }
+
   /* ---------- Événements ---------- */
   function onClick(e) {
     var t = e.target.closest('[data-act]');
@@ -767,6 +866,9 @@
       case 'prev': nav(-1); break;
       case 'next': nav(1); break;
       case 'flip': flip(); break;
+      case 'due': go('#/due'); break;
+      case 'dueRun': go('#/due/' + t.dataset.key); break;
+      case 'srs': srsDialog(t.dataset.id); break;
       case 'swNo': commit('no'); break;
       case 'swOk': commit('ok'); break;
       case 'restart': restart(); break;
@@ -808,7 +910,7 @@
     }
   }
 
-  FC.VERSION = 'v21';
+  FC.VERSION = 'v22';
   function refreshApp() {
     var done = function () { location.reload(); };
     var p = Promise.resolve();
@@ -819,7 +921,7 @@
   function onChange() {
     renderSide();
     renderTabbar();
-    if (route.v === 'set' || route.v === 'errors') refreshReview();
+    if (route.v === 'set' || route.v === 'errors' || route.v === 'dueRun') refreshReview();
     else if (route.v === 'lib') {
       if (document.activeElement && document.activeElement.id === 'q') paintLibBody();
       else { renderMain(); }
