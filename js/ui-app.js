@@ -332,7 +332,7 @@
     while (n && !cc) { R.list.splice(R.idx, 1); n = R.list.length; R.idx = Math.min(R.idx, Math.max(0, n - 1)); cc = cur(); }
     var set = R.kind === 'set' ? FC.set(R.setId) : null;
     if (R.done && n) {
-      host.innerHTML = '<div class="empty-card done"><h2>Tour terminé</h2><p><b class="okn">' + FC.plural(R.okN || 0, 'carte connue', 'cartes connues') + '</b> · <b class="non">' + FC.plural(R.noN || 0, 'erreur') + '</b></p>' + (R.kind === 'due' ? '<button type="button" class="btn primary" data-act="due">Retour à « À réviser »</button>' : '<button type="button" class="btn primary" data-act="restart">Recommencer</button>') + '</div>';
+      host.innerHTML = '<div class="empty-card done"><h2>Tour terminé</h2><p><b class="okn">' + FC.plural(R.okN || 0, 'carte connue', 'cartes connues') + '</b> · <b class="non">' + FC.plural(R.noN || 0, 'erreur') + '</b></p>' + ((R.missed || []).length ? '<button type="button" class="btn primary" data-act="redo">Refaire les ' + R.missed.length + ' erreur' + (R.missed.length > 1 ? 's' : '') + '</button>' : '') + (R.kind === 'due' ? '<button type="button" class="btn' + ((R.missed || []).length ? '' : ' primary') + '" data-act="due">Retour à « À réviser »</button>' : '<button type="button" class="btn" data-act="restart">Recommencer</button>') + '</div>';
       R.sig = '';
       $('#counter').textContent = n + ' cartes';
       $('#segInfo').innerHTML = segsHTML(set);
@@ -376,7 +376,9 @@
   function refreshReview() {
     if (!R) return;
     var curId = R.list[R.idx] && R.list[R.idx].cardId;
-    if (R.kind === 'set') {
+    if (R.kind === 'set' && R.custom) {
+      R.list = R.list.filter(function (e) { var s0 = FC.set(e.setId); return s0 && FC.findCard(s0, e.cardId); });
+    } else if (R.kind === 'set') {
       var s = FC.set(R.setId);
       if (!s) { go('#/'); return; }
       R.list = entries(s, R.tab);
@@ -401,7 +403,7 @@
     SHUF.on = !SHUF.on;
     SHUF.rank = {};
     var curId = R.list[R.idx] && R.list[R.idx].cardId;
-    if (R.kind === 'set') R.list = entries(FC.set(R.setId), R.tab); else if (R.kind === 'due') R.list = order((R.base || R.list).filter(function (e) { var s = FC.set(e.setId); return s && FC.findCard(s, e.cardId); })); else R.list = order(FC.allErrors());
+    if (R.kind === 'set' && !R.custom) R.list = entries(FC.set(R.setId), R.tab); else if (R.kind === 'due' || R.custom) R.list = order((R.base || R.list).filter(function (e) { var s = FC.set(e.setId); return s && FC.findCard(s, e.cardId); })); else R.list = order(FC.allErrors());
     var i = -1;
     R.list.forEach(function (e, k) { if (e.cardId === curId) i = k; });
     if (SHUF.on) { R.idx = 0; R.flipped = false; } else { R.idx = i >= 0 ? i : 0; }
@@ -420,6 +422,12 @@
     R.done = false;
     R.anim = true;
     R.sig = '';
+    paintCard();
+  }
+  function redo() {
+    if (!R || !(R.missed || []).length) return;
+    R.list = R.missed.slice(); R.base = R.list.slice(); R.custom = true; R.missed = [];
+    R.done = false; R.okN = 0; R.noN = 0; R.idx = 0; R.flipped = false; R.anim = true; R.sig = '';
     paintCard();
   }
   function restart() {
@@ -467,6 +475,8 @@
       FC.setError(cc.set.id, cc.card.id, kind === 'no');
       FC.reviewResult(cc.set.id, cc.card.id, kind === 'ok');
       if (kind === 'ok') R.okN = (R.okN || 0) + 1; else R.noN = (R.noN || 0) + 1;
+      R.missed = (R.missed || []).filter(function (e) { return e.cardId !== cc.card.id; });
+      if (kind === 'no') R.missed.push({ setId: cc.set.id, cardId: cc.card.id });
       R.flipped = false; R.anim = !hasNext; R.sig = '';
       if (R.idx >= R.list.length - 1) R.done = true; else R.idx++;
       paintCard();
@@ -782,6 +792,16 @@
   function dueQuery(key) {
     var groups = dueGroups(), list = [], title = 'À réviser', crumb = 'Toutes les matières';
     var p = String(key || 'all').split(':');
+    if (p[0] === 'e' || p[0] === 'ef') {
+      FC.get().sets.forEach(function (s) {
+        if (p[0] === 'e' && s.id !== p[1]) return;
+        if (p[0] === 'ef') { var tf = s.folder ? FC.topFolder(s.folder) : null; if ((tf ? tf.id : '_') !== p[1]) return; }
+        list = list.concat(FC.errorEntries(s));
+        if (p[0] === 'e') { title = s.title; crumb = 'Erreurs à refaire'; }
+        else { title = tf ? tf.name : 'Sans dossier'; crumb = 'Erreurs à refaire'; }
+      });
+      return { list: list, title: title, crumb: crumb };
+    }
     groups.forEach(function (gr) {
       if (p[0] === 'f' && gr.id !== p[1]) return;
       gr.sets.forEach(function (s) {
@@ -795,7 +815,7 @@
   }
   function dueView() {
     var groups = dueGroups(), total = 0;
-    groups.forEach(function (gr) { gr.n = 0; gr.sets.forEach(function (s) { s.__n = FC.dueEntries(s).length; gr.n += s.__n; }); total += gr.n; });
+    groups.forEach(function (gr) { gr.n = 0; gr.e = 0; gr.sets.forEach(function (s) { s.__n = FC.dueEntries(s).length; s.__e = FC.errorEntries(s).length; gr.n += s.__n; gr.e += s.__e; }); total += gr.n; });
     var h = '<div class="page due"><header class="fhead"><div class="fhead-t"><h1>À réviser aujourd’hui</h1><div class="sub">' + (total ? FC.plural(total, 'carte') + ' à revoir' : 'Tout est à jour') + '</div></div>' +
       (total ? '<button type="button" class="btn dark" data-act="dueRun" data-key="all">Tout réviser</button>' : '') + '</header>';
     if (!groups.length) {
@@ -803,6 +823,7 @@
     }
     groups.forEach(function (gr) {
       h += '<section class="dgroup"><div class="dg-h"><span class="dot" style="background:' + gr.color.front + '"></span><h3>' + esc(gr.name) + '</h3><span class="dg-n">' + (gr.n || '✓') + '</span>' +
+        (gr.e ? '<button type="button" class="btn sm errb" data-act="dueRun" data-key="ef:' + gr.id + '">' + gr.e + ' erreur' + (gr.e > 1 ? 's' : '') + '</button>' : '') +
         '<button type="button" class="btn sm" data-act="dueRun" data-key="f:' + gr.id + '"' + (gr.n ? '' : ' disabled') + '>Réviser</button></div><div class="dlist">';
       gr.sets.forEach(function (s) {
         var cfg = FC.srsOf(s), nd = FC.nextDue(s);
@@ -811,6 +832,7 @@
         var sub = s.folder ? FC.pathNames(s.folder).slice(1).join(' › ') : '';
         h += '<div class="drow"><button type="button" class="drow-main" data-act="dueRun" data-key="s:' + s.id + '"' + (s.__n ? '' : ' disabled') + '><span class="dt">' + esc(s.title) + '</span>' +
           '<span class="dm">' + esc((sub ? sub + ' · ' : '') + meta) + ' · ' + esc(rhythm) + '</span></button>' +
+          (s.__e ? '<button type="button" class="errpill" data-act="dueRun" data-key="e:' + s.id + '" aria-label="Refaire les erreurs">' + s.__e + ' à refaire</button>' : '') +
           '<button type="button" class="kebab flat" data-act="srs" data-id="' + s.id + '" aria-label="Réglages du suivi">' + ic('gear', 16) + '</button></div>';
       });
       h += '</div></section>';
@@ -872,6 +894,7 @@
       case 'swNo': commit('no'); break;
       case 'swOk': commit('ok'); break;
       case 'restart': restart(); break;
+      case 'redo': redo(); break;
       case 'edit': var cc = cur(); if (cc) editCard(cc.set.id, cc.card); break;
       case 'addCard':
         if (R && R.kind === 'set') {
@@ -910,7 +933,7 @@
     }
   }
 
-  FC.VERSION = 'v23';
+  FC.VERSION = 'v24';
   function refreshApp() {
     var done = function () { location.reload(); };
     var p = Promise.resolve();

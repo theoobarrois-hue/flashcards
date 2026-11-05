@@ -286,6 +286,11 @@
     var budget = cfg.newPerDay > 0 ? Math.max(0, cfg.newPerDay - (cfg.nd === t ? (cfg.nn || 0) : 0)) : nw.length;
     return rev.concat(nw.slice(0, budget)).map(function (c) { return { setId: set.id, cardId: c.id }; });
   };
+  FC.errorEntries = function (set) {
+    var rid = recapIdOf(set), out = [];
+    set.cards.forEach(function (c) { if (rid && c.ch === rid) return; if (set.errors.indexOf(c.id) >= 0) out.push({ setId: set.id, cardId: c.id }); });
+    return out;
+  };
   FC.nextDue = function (set) {
     var t = FC.today(), best = null, rid = recapIdOf(set);
     set.cards.forEach(function (c) { if ((rid && c.ch === rid) || c.due == null || c.due <= t) return; if (best === null || c.due < best) best = c.due; });
