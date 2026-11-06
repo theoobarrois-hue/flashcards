@@ -1,5 +1,5 @@
 'use strict';
-const CACHE='cap-prepa-shell-v5';
+const CACHE='cap-prepa-shell-v6';
 const FILES=['./index.html','./style.css','./config.js','./core.js','./app.js','./install.js','./sync.js','./settings.js','./train.js','./theme.css','./fonts/dm-sans-latin-wght-normal.woff2','./fonts/fraunces-latin-wght-normal.woff2','./fonts/fraunces-latin-wght-italic.woff2','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
 self.addEventListener('install',event=>{event.waitUntil((async()=>{
  const entries=await Promise.all(FILES.map(async path=>{
