@@ -352,7 +352,7 @@
     function fx(t) {
       if (typeof t !== 'string' || t.indexOf('margin-left:') < 0) return t;
       return t.replace(/margin-left:\s*([\d.]+)px;\s*margin-right:\s*([\d.]+)px/g, function (m, a, b) {
-        if (a === b && parseFloat(a) > 20) { n++; return 'margin-left:auto;margin-right:auto;width:fit-content;width:-webkit-fit-content'; }
+        if (Math.abs(parseFloat(a) - parseFloat(b)) < 1 && parseFloat(a) > 20) { n++; return 'margin-left:auto;margin-right:auto;width:fit-content;width:-webkit-fit-content'; }
         return m;
       });
     }
