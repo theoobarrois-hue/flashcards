@@ -146,7 +146,7 @@
 
   FC.load = function () {
     return kvGet('state')
-      .then(function (v) { if (v) { state = migrate(v); try { if (migrateRecap()) touch(true); } catch (e) { /* ignore */ } } return state; })
+      .then(function (v) { if (v) { state = migrate(v); try { var m1 = migrateRecap(), m2 = fixAutoMargins(); if (m1 || m2) touch(true); } catch (e) { /* ignore */ } } return state; })
       .catch(function () {
         FC.storage = 'localStorage';
         try {
@@ -346,6 +346,21 @@
   }
   /* Le Récap est indépendant : ses cartes sont des copies (chapitre caché), supprimer dans un chapitre ne touche pas le Récap.
      Les anciennes cartes « étoilées » sont converties en copies (ids déterministes → pas de doublons entre appareils). */
+  /* Imports anciens : « margin:auto » figé en px (ex. margin-left:171.9px;margin-right:171.9px) rétrécit le texte sur mobile */
+  function fixAutoMargins() {
+    var n = 0;
+    function fx(t) {
+      if (typeof t !== 'string' || t.indexOf('margin-left:') < 0) return t;
+      return t.replace(/margin-left:\s*([\d.]+)px;\s*margin-right:\s*([\d.]+)px/g, function (m, a, b) {
+        if (a === b && parseFloat(a) > 20) { n++; return 'margin-left:auto;margin-right:auto'; }
+        return m;
+      });
+    }
+    (state.sets || []).forEach(function (st) {
+      (st.cards || []).forEach(function (c) { c.f = fx(c.f); c.b = fx(c.b); if (c.n) c.n = fx(c.n); });
+    });
+    return n > 0;
+  }
   function migrateRecap() {
     var changed = false;
     state.sets.forEach(function (set) {

@@ -210,7 +210,10 @@
             var tag = el.tagName.toLowerCase();
             if (tag === 'svg') { el.setAttribute('style', 'max-width:100%;max-height:' + (multi ? '15vh' : '34vh') + ';width:auto;height:auto;color:inherit;display:block;margin:0 auto'); continue; }
             var cs = getComputedStyle(el), r = refStyle(tag, host), st = '';
-            PROPS.forEach(function (p) { var v = cs.getPropertyValue(p); if (v && v !== r[p]) st += p + ':' + v + ';'; });
+            var ml = cs.getPropertyValue('margin-left'), mr = cs.getPropertyValue('margin-right');
+            /* marges latérales égales et non nulles = « margin:auto » résolu en px dans notre conteneur : on garde auto */
+            if (ml === mr && parseFloat(ml) > 0 && cs.getPropertyValue('display') === 'block') st += 'margin-left:auto;margin-right:auto;';
+            PROPS.forEach(function (p) { if (/^margin-(left|right)$/.test(p) && ml === mr && parseFloat(ml) > 0 && cs.getPropertyValue('display') === 'block') return; var v = cs.getPropertyValue(p); if (v && v !== r[p]) st += p + ':' + v + ';'; });
             if (st) el.setAttribute('style', (el.getAttribute('style') || '') + ';' + st);
             el.removeAttribute('class');
           }
