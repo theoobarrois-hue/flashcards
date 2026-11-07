@@ -327,6 +327,8 @@
   /* Cartes longues : la face défile verticalement au doigt (le glisser horizontal reste le swipe) */
   function markScroll() {
     $$('#cardHost .card:not(.nxt) .face').forEach(function (f) { f.dataset.sc = f.scrollHeight > f.clientHeight + 2 ? '1' : ''; });
+    /* formules plus larges que la carte : défilement latéral au doigt */
+    $$('#cardHost .card:not(.nxt) .katex-display').forEach(function (k) { k.dataset.sx = k.scrollWidth > k.clientWidth + 2 ? '1' : ''; });
   }
   window.addEventListener('resize', function () { markScroll(); });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { markScroll(); });
@@ -509,13 +511,19 @@
       if (!card || e.target.closest('a,button')) return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       var fc = e.target.closest('.face');
-      D = { sc: !!(fc && fc.dataset.sc === '1'), id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0, drag: false, card: card, lx: e.clientX, ly: e.clientY, lt: performance.now(), vx: 0, vy: 0 };
+      var sxEl = e.target.closest && e.target.closest('[data-sx="1"]');
+      D = { sx: sxEl || null, sc: !!(fc && fc.dataset.sc === '1'), id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0, drag: false, card: card, lx: e.clientX, ly: e.clientY, lt: performance.now(), vx: 0, vy: 0 };
     });
     document.addEventListener('pointermove', function (e) {
       if (!D || e.pointerId !== D.id) return;
       var dx = e.clientX - D.x, dy = e.clientY - D.y;
       if (!D.drag) {
         /* carte longue : un geste plutôt vertical = défilement, on ne démarre pas le swipe */
+        /* formule qui déborde : un geste horizontal la fait défiler tant qu'elle n'est pas au bout */
+        if (D.sx && Math.abs(dx) > 4 && Math.abs(dx) > Math.abs(dy)) {
+          var mx = D.sx.scrollWidth - D.sx.clientWidth - 1;
+          if ((dx < 0 && D.sx.scrollLeft < mx) || (dx > 0 && D.sx.scrollLeft > 0)) { D = null; return; }
+        }
         if (D.sc) {
           if (Math.abs(dy) > 7 && Math.abs(dy) > Math.abs(dx) * 0.7) { D = null; return; }
           if (Math.abs(dx) < 14) return;
@@ -963,7 +971,7 @@
     }
   }
 
-  FC.VERSION = 'v39';
+  FC.VERSION = 'v40';
   function refreshApp() {
     var done = function () { location.reload(); };
     var p = Promise.resolve();
