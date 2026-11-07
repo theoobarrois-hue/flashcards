@@ -212,7 +212,7 @@
             var cs = getComputedStyle(el), r = refStyle(tag, host), st = '';
             var ml = cs.getPropertyValue('margin-left'), mr = cs.getPropertyValue('margin-right');
             /* marges latérales égales et non nulles = « margin:auto » résolu en px dans notre conteneur : on garde auto */
-            if (ml === mr && parseFloat(ml) > 0 && cs.getPropertyValue('display') === 'block') st += 'margin-left:auto;margin-right:auto;';
+            if (ml === mr && parseFloat(ml) > 0 && cs.getPropertyValue('display') === 'block') st += 'margin-left:auto;margin-right:auto;width:fit-content;width:-webkit-fit-content;';
             PROPS.forEach(function (p) { if (/^margin-(left|right)$/.test(p) && ml === mr && parseFloat(ml) > 0 && cs.getPropertyValue('display') === 'block') return; var v = cs.getPropertyValue(p); if (v && v !== r[p]) st += p + ':' + v + ';'; });
             if (st) el.setAttribute('style', (el.getAttribute('style') || '') + ';' + st);
             el.removeAttribute('class');
