@@ -299,10 +299,30 @@
       return { title: docTitle(), sub: '', tabs: tabs };
     }
 
+    /* Cartes déclarées dans le HTML : <div class="set" data-title> contenant des <span class="c" data-f data-b> */
+    function tryDom() {
+      var sets = [].slice.call(document.querySelectorAll('.set'));
+      var scripts = [].slice.call(document.scripts).filter(function (s) { return !s.hasAttribute('data-fc'); });
+      var tabs = [];
+      sets.forEach(function (st, i) {
+        var els = [].slice.call(st.querySelectorAll('[data-f][data-b]'));
+        if (!els.length) return;
+        var title = (st.getAttribute('data-title') || 'Set ' + (i + 1)).replace(/\s+/g, ' ').trim().slice(0, 120);
+        var key = st.getAttribute('data-key') || ('g' + i);
+        if (st.getAttribute('data-recap') === '1' && !/r[ée]cap/i.test(title)) title = 'Récap Ultra-Important';
+        tabs.push({ key: key, title: title, cards: els.map(function (e) { return { f: e.getAttribute('data-f'), b: e.getAttribute('data-b') }; }) });
+      });
+      if (!tabs.length) return null;
+      var prep = makePrep(scripts);
+      tabs.forEach(function (t) { t.cards = t.cards.map(function (c) { return { f: fixMath(prep(c.f)), b: fixMath(prep(c.b)) }; }); });
+      return { title: docTitle(), sub: '', tabs: tabs };
+    }
+
     function run() {
       try {
         var res = tryTemplate();
         var isTpl = !!res;
+        if (!res || total(res) === 0) { var d0 = tryDom(); if (d0 && total(d0) > 0) res = d0; }
         if (!res || total(res) === 0) { var g = tryGeneric(); if (g && total(g) > 0) res = g; }
         if (!res) return post({ error: 'format' });
         if (total(res) === 0) return post({ error: 'empty' });
