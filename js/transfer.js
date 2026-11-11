@@ -230,7 +230,7 @@
             var ml = cs.getPropertyValue('margin-left'), mr = cs.getPropertyValue('margin-right');
             var sym = Math.abs(parseFloat(ml) - parseFloat(mr)) < 1 && parseFloat(ml) > 0 && cs.getPropertyValue('display') === 'block';
             /* marges latérales égales et non nulles = « margin:auto » résolu en px dans notre conteneur : on garde auto */
-            if (sym) st += 'margin-left:auto;margin-right:auto;width:fit-content;width:-webkit-fit-content;';
+            if (sym) st += el.querySelector('svg,img,canvas') ? 'margin-left:auto;margin-right:auto;width:100%;' : 'margin-left:auto;margin-right:auto;width:fit-content;width:-webkit-fit-content;';
             PROPS.forEach(function (p) { if (sym && /^margin-(left|right)$/.test(p)) return; var v = cs.getPropertyValue(p); if (v && v !== r[p]) st += p + ':' + v + ';'; });
             if (cs.getPropertyValue('position') !== 'static') {
               st += 'position:' + cs.getPropertyValue('position') + ';';

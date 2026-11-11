@@ -350,7 +350,9 @@
   function fixAutoMargins() {
     var n = 0;
     function fx(t) {
-      if (typeof t !== 'string' || t.indexOf('margin-left:') < 0) return t;
+      if (typeof t !== 'string' || (t.indexOf('margin-left:') < 0 && t.indexOf('fit-content') < 0)) return t;
+      /* conteneur d'un schéma (SVG/image) figé en « fit-content » : l'SVG n'a pas de largeur propre, il disparaît -> pleine largeur */
+      t = t.replace(/width:fit-content;(?:width:-webkit-fit-content;?)?([^"]*"[^>]*>\s*<(?:svg|img))/g, function (m, rest) { n++; return 'width:100%;' + rest; });
       return t.replace(/margin-left:\s*([\d.]+)px;\s*margin-right:\s*([\d.]+)px/g, function (m, a, b) {
         if (Math.abs(parseFloat(a) - parseFloat(b)) < 1 && parseFloat(a) > 20) { n++; return 'margin-left:auto;margin-right:auto;width:fit-content;width:-webkit-fit-content'; }
         return m;
