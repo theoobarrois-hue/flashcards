@@ -318,11 +318,32 @@
       return { title: docTitle(), sub: '', tabs: tabs };
     }
 
+    /* Jeux statiques : <section class="tab" id="tab-x"> de <div class="card"> avec .q (question) et .a (réponse) */
+    function tryStatic() {
+      var secs = [].slice.call(document.querySelectorAll('section.tab, [id^="tab-"]')).filter(function (e) { return e.querySelector('.card .q, .card .a') || e.querySelector('.q'); });
+      var tabs = [];
+      secs.forEach(function (sec, i) {
+        var key = (sec.id || '').replace(/^tab-/, '') || ('g' + i);
+        var btn = document.querySelector('[data-tab="' + key + '"]');
+        var title = ((btn && btn.textContent) || key).replace(/\s+/g, ' ').trim().slice(0, 120);
+        if (key === 'recap' && !/r[ée]cap/i.test(title)) title = 'Récap Ultra-Important';
+        var cards = [].slice.call(sec.querySelectorAll('.card')).map(function (c) {
+          var q = c.querySelector('.q'), a = c.querySelector('.a');
+          if (!q || !a) return null;
+          return { f: q.innerHTML.trim(), b: a.innerHTML.trim() };
+        }).filter(Boolean);
+        if (cards.length) tabs.push({ key: key, title: title, cards: cards });
+      });
+      if (!tabs.length) return null;
+      return { title: docTitle(), sub: '', tabs: tabs };
+    }
+
     function run() {
       try {
         var res = tryTemplate();
         var isTpl = !!res;
         if (!res || total(res) === 0) { var d0 = tryDom(); if (d0 && total(d0) > 0) res = d0; }
+        if (!res || total(res) === 0) { var d1 = tryStatic(); if (d1 && total(d1) > 0) res = d1; }
         if (!res || total(res) === 0) { var g = tryGeneric(); if (g && total(g) > 0) res = g; }
         if (!res) return post({ error: 'format' });
         if (total(res) === 0) return post({ error: 'empty' });

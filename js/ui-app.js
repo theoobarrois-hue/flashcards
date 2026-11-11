@@ -990,7 +990,7 @@
     }
   }
 
-  FC.VERSION = 'v41';
+  FC.VERSION = 'v42';
   function refreshApp() {
     var done = function () { location.reload(); };
     var p = Promise.resolve();
