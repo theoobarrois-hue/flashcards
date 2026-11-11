@@ -203,21 +203,43 @@
           host.innerHTML = html;
           var multi = host.querySelectorAll('.cell').length > 1;
           var all = host.querySelectorAll('*');
+          var ops = [];
+          function queue(el, style) { ops.push([el, style]); }
           for (var i = 0; i < all.length; i++) {
             var el = all[i];
-            if (el.closest('svg') && el.tagName.toLowerCase() !== 'svg') continue;
-            if (!el.getAttribute('class') && el.tagName.toLowerCase() !== 'svg') continue;
             var tag = el.tagName.toLowerCase();
-            if (tag === 'svg') { el.setAttribute('style', 'max-width:100%;max-height:' + (multi ? '15vh' : '34vh') + ';width:auto;height:auto;color:inherit;display:block;margin:0 auto'); continue; }
+            if (el.closest('svg') && tag !== 'svg') {
+              /* éléments internes d'un SVG : on fige les propriétés de dessin que la feuille de style du fichier leur donnait */
+              if (el.getAttribute('class') || el.hasAttribute('style')) {
+                var cv = getComputedStyle(el), sv = '';
+                ['fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'stroke-dasharray', 'fill-opacity', 'stroke-opacity', 'opacity', 'font-size', 'font-family', 'font-weight', 'font-style', 'text-anchor', 'dominant-baseline', 'marker-end', 'marker-start'].forEach(function (p) { var v = cv.getPropertyValue(p); if (v && v !== 'normal' && v !== 'auto') sv += p + ':' + v + ';'; });
+                queue(el, (el.getAttribute('style') || '') + ';' + sv);
+              }
+              continue;
+            }
+            if (!el.getAttribute('class') && tag !== 'svg') continue;
+            if (tag === 'svg') {
+              var sc = getComputedStyle(el);
+              if (sc.getPropertyValue('position') !== 'static') {
+                /* SVG en surimpression (flèches courbes) : on garde sa position et sa taille */
+                queue(el, (el.getAttribute('style') || '') + ';position:' + sc.getPropertyValue('position') + ';left:' + sc.getPropertyValue('left') + ';top:' + sc.getPropertyValue('top') + ';width:' + sc.getPropertyValue('width') + ';height:' + sc.getPropertyValue('height') + ';pointer-events:none;overflow:visible;');
+              } else queue(el, 'max-width:100%;max-height:' + (multi ? '15vh' : '34vh') + ';width:auto;height:auto;color:inherit;display:block;margin:0 auto');
+              continue;
+            }
             var cs = getComputedStyle(el), r = refStyle(tag, host), st = '';
             var ml = cs.getPropertyValue('margin-left'), mr = cs.getPropertyValue('margin-right');
             var sym = Math.abs(parseFloat(ml) - parseFloat(mr)) < 1 && parseFloat(ml) > 0 && cs.getPropertyValue('display') === 'block';
             /* marges latérales égales et non nulles = « margin:auto » résolu en px dans notre conteneur : on garde auto */
             if (sym) st += 'margin-left:auto;margin-right:auto;width:fit-content;width:-webkit-fit-content;';
             PROPS.forEach(function (p) { if (sym && /^margin-(left|right)$/.test(p)) return; var v = cs.getPropertyValue(p); if (v && v !== r[p]) st += p + ':' + v + ';'; });
-            if (st) el.setAttribute('style', (el.getAttribute('style') || '') + ';' + st);
-            el.removeAttribute('class');
+            if (cs.getPropertyValue('position') !== 'static') {
+              st += 'position:' + cs.getPropertyValue('position') + ';';
+              (cs.getPropertyValue('position') === 'relative' ? ['height', 'min-height', 'z-index'] : ['left', 'top', 'transform', 'z-index']).forEach(function (p) { var v = cs.getPropertyValue(p); if (v && v !== 'auto' && v !== 'none' && v !== '0px') st += p + ':' + v + ';'; });
+              if (cs.getPropertyValue('position') !== 'relative') { st += 'white-space:nowrap;'; if (cs.getPropertyValue('left') === '0px') st += 'left:0;'; if (cs.getPropertyValue('top') === '0px') st += 'top:0;'; }
+            }
+            queue(el, (el.getAttribute('style') || '') + ';' + (st || ''));
           }
+          ops.forEach(function (o) { o[0].setAttribute('style', o[1]); o[0].removeAttribute('class'); });
           return host.innerHTML;
         } catch (e) { return html; } finally { document.body.removeChild(host); }
       }
@@ -322,6 +344,7 @@
     function tryStatic() {
       var secs = [].slice.call(document.querySelectorAll('section.tab, [id^="tab-"]')).filter(function (e) { return e.querySelector('.card .q, .card .a') || e.querySelector('.q'); });
       var tabs = [];
+      var prep = makePrep([].slice.call(document.scripts));
       secs.forEach(function (sec, i) {
         var key = (sec.id || '').replace(/^tab-/, '') || ('g' + i);
         var btn = document.querySelector('[data-tab="' + key + '"]');
@@ -330,7 +353,7 @@
         var cards = [].slice.call(sec.querySelectorAll('.card')).map(function (c) {
           var q = c.querySelector('.q'), a = c.querySelector('.a');
           if (!q || !a) return null;
-          return { f: q.innerHTML.trim(), b: a.innerHTML.trim() };
+          return { f: prep(q.innerHTML.trim()), b: prep(a.innerHTML.trim()) };
         }).filter(Boolean);
         if (cards.length) tabs.push({ key: key, title: title, cards: cards });
       });
